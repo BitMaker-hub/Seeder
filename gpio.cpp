@@ -112,7 +112,7 @@ void sButton::check(void)
     }
 
     //LongClick 
-    if((but == antState) && (but == LOW)) {
+    if(msecLst && (but == antState) && (but == LOW)) {
         if(elapsed > ButLongClick) {
           msecLst = 0; 
           clickState = LongClick;

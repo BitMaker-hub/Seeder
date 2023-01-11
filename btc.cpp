@@ -11,7 +11,7 @@ String password="";
 
 /**************🍃 INIT WALLET *******************/
 void initWallet(void){
-
+  
   if(myWallet.mnemonic.length() > 0){
     HDPrivateKey hd(myWallet.mnemonic, password);
     HDPrivateKey account = hd.derive("m/84'/0'/0'/");
@@ -20,6 +20,10 @@ void initWallet(void){
     myWallet.firstAddress= account.address();
   }
 
+  //Test last word generation - uncoment to test your coin data
+  //uint8_t data[16]={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  //createSeed(12, data);
+  
 }
 
 void random_buffer_esp(uint8_t *buf, size_t len)
@@ -33,8 +37,14 @@ void random_buffer_esp(uint8_t *buf, size_t len)
   }
 }
 
+//Calculate RGN seed
 void createSeed(int nWords){
 
+  size_t len = nWords*4/3;
+  if (len % 4 || len < 16 || len > 32) {
+    return;
+  }
+  
   // entropy bytes to mnemonic
   bootloader_random_enable();
   delay(1000);
@@ -55,4 +65,32 @@ void createSeed(int nWords){
   bootloader_random_disable();
 }
 
+//Get MnemonicWords from coin data and calculate last word
+void createSeed(int nWords, uint8_t * entropy){
+
+  // Using Generate Mnemonic
+  delay(1000);
+
+  size_t len = nWords*4/3;
+  if (len % 4 || len < 16 || len > 32) {
+    return;
+  }
+  String mn = mnemonicFromEntropy(entropy, len);
+  Serial.print("Hex entropy: ");
+  for(int i=0; i<32; i++){
+   if (entropy[i] < 16) { Serial.print("0"); }
+   Serial.print(entropy[i], HEX);
+   Serial.print(" ");
+  }
+  Serial.println();
+  Serial.println(mn);
+
+  // Extract xpub from primary address
+  HDPrivateKey hd(mn, password);
+  HDPrivateKey account = hd.derive("m/84'/0'/0'/");
+    
+  myWallet.xpub= account.xpub();
+  myWallet.mnemonic = mn;
+  myWallet.firstAddress= account.address();
+}
 

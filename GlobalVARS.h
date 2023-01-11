@@ -30,11 +30,13 @@ const int wdtTimeout = 3000;  //time in ms to trigger the watchdog
 #define HEADER_HEIGHT     37
 #define SEEDER_GREEN      0x86F3  //Green color used in seeder
 #define SEEDER_GREY       0xA514
+#define SEEDER_BLUE       0x0619
 
 /********** 🍃 STATES ************************/
-#define STATE_MENU        1
-#define STATE_MENU_RGN    2
+#define STATE_INITMENU    1
+#define STATE_WORDS       2
 #define STATE_SEED        3
+#define STATE_COINSEED    4
 /********** 🍃 SHOW SEED PARAMS ************************/
 #define SHOW_SEED1        1
 #define SHOW_SEED2        2
@@ -48,6 +50,7 @@ typedef struct {
    uint8_t State;           //SEEDER current menu position
    uint8_t preState;        //Current menu position before selecting it
    uint8_t nWords;          //Current number of Words selected on wallet
+   uint8_t nBCoinEntropy;   //Current bits needed to generate seed during coin Entropy
    String xpub;             //Current xpub address
    String firstAddress;     //Current xpub address
    String mnemonic;         //Current words

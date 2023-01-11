@@ -13,7 +13,7 @@ void setup() {
   EEPROMsetup();                                // Init EEPROMdata
   Init_TFT();                                   // Init TFT wallet
   initWallet();                                 // Init wallet data
-  myWallet.State = STATE_MENU;
+  myWallet.State = STATE_INITMENU;
 }
 
 
@@ -26,9 +26,10 @@ void loop() {
 
     /***** Print menu options ***********/
     switch(myWallet.State){
-      case STATE_MENU:      doInitMenu(); break;
-      case STATE_MENU_RGN:  doMenuRGN(); break;
-      case STATE_SEED:      doShowSeed(); break;
+      case STATE_INITMENU:      doInitMenu(); break;
+      case STATE_WORDS:        doMenuWords(); break;
+      case STATE_SEED:        doShowSeed(); break;
+      case STATE_COINSEED:    doCoinSeed(); break;
     }
     delay(10);
   }
