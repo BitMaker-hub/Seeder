@@ -5,7 +5,7 @@
 #include "btc.h"
 #include "GlobalVARS.h"
 #include "workflow.h"
-#include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
+#include <TFT_eSPI.h> // Graphics and font library for TTGO T-DISPLAY driver chip
 
 /**********************🍃 GLOBAL Vars *******************************/
 extern TFT_eSPI tft;  // Invoke library, pins defined in User_Setup.h

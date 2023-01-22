@@ -12,14 +12,6 @@ String password="";
 /**************🍃 INIT WALLET *******************/
 void initWallet(void){
   
-  if(myWallet.mnemonic.length() > 0){
-    HDPrivateKey hd(myWallet.mnemonic, password);
-    HDPrivateKey account = hd.derive("m/84'/0'/0'/");
-    
-    myWallet.xpub= account.xpub();
-    myWallet.firstAddress= account.address();
-  }
-
   //Test last word generation - uncoment to test your coin data
   //uint8_t data[16]={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   //createSeed(12, data);
@@ -45,7 +37,7 @@ void createSeed(int nWords){
     return;
   }
   
-  // entropy bytes to mnemonic
+  // enable 
   bootloader_random_enable();
   delay(1000);
   
