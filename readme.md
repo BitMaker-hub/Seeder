@@ -8,7 +8,7 @@ Con la SEEDER podrás ser más soberano y no depender de nadie ni nada para salv
 
 Todo ello gracias a la genial idea de  @Lunaticoin  y mi trabajo.
 
-![image](https://github.com/BitMaker-hub/Seeder/Images/Seeder_entry.png)
+![image](https://github.com/BitMaker-hub/Seeder/blob/master/Images/Seeder_entry.png)
 
 ## Requisitos
 - Módulo TTGO T-Display
