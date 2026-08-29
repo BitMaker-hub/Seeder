@@ -9,7 +9,9 @@ sButton btnSelect(PIN_SELECT);
   
 void setup() {
 
-  Serial.begin(SERIAL_BAUD);                    // Init Serial port
+#if SEEDER_DEBUG
+  Serial.begin(SERIAL_BAUD);                  // UART only exists in debug builds
+#endif
   EEPROMsetup();                                // Init EEPROMdata
   Init_TFT();                                   // Init TFT wallet
   initWallet();                                 // Init wallet data
