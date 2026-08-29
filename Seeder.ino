@@ -30,6 +30,7 @@ void loop() {
       case STATE_WORDS:        doMenuWords(); break;
       case STATE_SEED:        doShowSeed(); break;
       case STATE_COINSEED:    doCoinSeed(); break;
+      case STATE_DICESEED:    doDiceSeed(); break;
     }
     delay(10);
   }

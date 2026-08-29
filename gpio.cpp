@@ -40,8 +40,8 @@ void Init_TFT(void){
   //tft.setFreeFont(FF22);
   //tft.drawString("RGN SEED", 8 , 15, GFXFF); 
   
-  myWallet.preState = coinSeed;
-  btnMove.forceClick(); //Forzamos click para que pinte el menu
+  myWallet.entropySrc = coinEntropy;
+  drawInitMenu();
   
 }
 
