@@ -2,9 +2,6 @@
 #include "Lib/Free_Fonts.h"
 
 
-/***************🍃 EEPROM ***************/
-void EEPROMsetup(void);
-
 /**************🍃 TFT functions ********************/
 void Init_TFT(void);
 void clrWorkArea(void);

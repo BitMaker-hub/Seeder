@@ -25,12 +25,9 @@ enum { rgnSeed, coinSeed };
  🍃 GENERAL
 **********************************/
 #define SERIAL_BAUD       115200   // baudrate debug
-#define EEPROM_SIZE       400      // define the number of bytes you want to access
-#define MNEMONIC_VOID     0        // first byte of mnemonic represents mnemonic state 
-#define STX               2        // Start of text
-#define ETX               3        // end of text
 
-const int wdtTimeout = 3000;  //time in ms to trigger the watchdog
+// The seed is NEVER written to flash: it only ever lives in RAM and a power
+// cycle wipes it. That is deliberate - do not add persistence here.
 
 /***************🍃 BUTTONS ***************/
 #define PIN_MOVE          35
