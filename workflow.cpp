@@ -223,7 +223,7 @@ void displaySeedData1(void){
   tft.setFreeFont(FM9);
   tft.setTextWrap(true);
   tft.setTextColor(SEEDER_GREEN);tft.print("Path: ");
-  tft.setTextColor(SEEDER_GREY);tft.println("m/84'/0'/0'/");
+  tft.setTextColor(SEEDER_GREY);tft.println("m/84'/0'/0'/0/0");
   tft.setTextColor(SEEDER_GREEN);tft.println("First address: ");
   tft.setTextColor(SEEDER_GREY);tft.println(myWallet.firstAddress);
 

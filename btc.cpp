@@ -46,13 +46,15 @@ void createSeed(int nWords){
   String mn = generateMnemonic(nWords, arr, sizeof(arr));
   Serial.println(mn);
 
-  // Extract xpub from primary address
+  // Extract account zpub and the FIRST RECEIVE address
   HDPrivateKey hd(mn, password);
   HDPrivateKey account = hd.derive("m/84'/0'/0'/");
-    
+
   myWallet.xpub= account.xpub();
   myWallet.mnemonic = mn;
-  myWallet.firstAddress= account.address();
+  // m/84'/0'/0'/0/0 - account.address() would be the account key itself,
+  // which no wallet ever shows and cannot be used to cross-check the seed
+  myWallet.firstAddress= account.derive("0/0").address();
 
   bootloader_random_disable();
 }
@@ -77,12 +79,14 @@ void createSeed(int nWords, uint8_t * entropy){
   Serial.println();
   Serial.println(mn);
 
-  // Extract xpub from primary address
+  // Extract account zpub and the FIRST RECEIVE address
   HDPrivateKey hd(mn, password);
   HDPrivateKey account = hd.derive("m/84'/0'/0'/");
-    
+
   myWallet.xpub= account.xpub();
   myWallet.mnemonic = mn;
-  myWallet.firstAddress= account.address();
+  // m/84'/0'/0'/0/0 - account.address() would be the account key itself,
+  // which no wallet ever shows and cannot be used to cross-check the seed
+  myWallet.firstAddress= account.derive("0/0").address();
 }
 
