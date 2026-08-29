@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install toolchain
+        run: pip install --upgrade platformio esptool==4.8.1
+
+      - name: Build
+        run: pio run -e seeder
+
+      # esptool-js wants one file at offset 0. Merging the four images here
+      # means the flashing tutorial is a single drag-and-drop.
+      - name: Merge into a single flashable image
+        run: |
+          set -eu
+          OUT=.pio/build/seeder
+          BOOT_APP0="$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+          mkdir -p dist
+          python -m esptool --chip esp32 merge_bin \
+            -o dist/seeder-firmware-merged.bin \
+            --flash_mode dio --flash_freq 80m --flash_size 4MB \
+            0x1000  "$OUT/bootloader.bin" \
+            0x8000  "$OUT/partitions.bin" \
+            0xe000  "$BOOT_APP0" \
+            0x10000 "$OUT/firmware.bin"
+          cp "$OUT/firmware.bin" "$OUT/bootloader.bin" "$OUT/partitions.bin" "$BOOT_APP0" dist/
+          sha256sum dist/* | tee dist/SHA256SUMS
+
+      # A seed generator is only as trustworthy as the audit trail of its binary.
+      - name: Show what went into the image
+        run: cat dist/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seeder-firmware
+          path: dist/
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
