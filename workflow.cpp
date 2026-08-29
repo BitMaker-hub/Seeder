@@ -14,6 +14,8 @@ extern sButton btnSelect;
 int menuSeed = SHOW_SEED1;
 int CursorX, CursorY;
 uint8_t entropy[32];   //Raw entropy captured from the user (128 or 256 bits)
+char diceRolls[DICE_MAX_ROLLS+1];  //ASCII digits of the rolls, hashed to get the entropy
+uint8_t diceValue = 1;             //Value the user is currently dialling in
 
 void displayMnemonic(int initWord);
 void displayHeader(String headerText, bool printStep);
@@ -21,10 +23,19 @@ void displayGenerateSeed(void);
 void displayGenerateSeed(uint8_t * entropy);
 void displayGenerateSeed(bool isRGN, uint8_t * entropy);
 void printEntropyBytes(void);
+void drawDiceCapture(void);
 
 /**************🍃 ENTROPY HELPERS *****************/
 //Bytes of entropy a mnemonic of nWords needs: 16 for 12 words, 32 for 24
 uint8_t entropyBytes(void){ return myWallet.nWords * 4 / 3; }
+
+//Rolls needed to cover the entropy: 50 -> 129.2 bits, 99 -> 255.9 bits
+uint8_t diceRollsNeeded(void){ return (myWallet.nWords == 12) ? DICE_ROLLS_12 : DICE_ROLLS_24; }
+
+//Step counter in the header. With 12 words there is no page 2 of the
+//mnemonic, so the remaining pages shift down by one instead of skipping a number.
+int seedSteps(void){ return (myWallet.nWords == 12) ? SHOW_EXPORTQR-1 : SHOW_EXPORTQR; }
+int seedStep(void) { return (myWallet.nWords == 12 && menuSeed > SHOW_SEED2) ? menuSeed-1 : menuSeed; }
 
 //Always call before capturing entropy: entropy[] is global and would otherwise
 //carry bits over from a previous seed, making the result impossible to verify.
@@ -38,68 +49,90 @@ void resetEntropy(void){
  ***********************************************/
 
 /**************🍃 INITIAL MENU *****************/
+
+//No XBM for the die: drawn with primitives so it can be tinted like the icons
+void drawDice(int x, int y, uint16_t color){
+  const int s = 58, r = 10, pip = 4;
+  tft.fillRoundRect(x, y, s, s, r, TFT_BLACK);
+  tft.drawRoundRect(x, y, s, s, r, color);
+  tft.drawRoundRect(x+1, y+1, s-2, s-2, r-1, color);
+  const int a = x + s/4, b = x + s/2, c = x + (3*s)/4;
+  const int d = y + s/4, e = y + s/2, f = y + (3*s)/4;
+  const int pips[5][2] = {{a,d},{c,d},{b,e},{a,f},{c,f}};   //face 5
+  for(int i=0; i<5; i++) tft.fillCircle(pips[i][0], pips[i][1], pip, color);
+}
+
+void drawInitMenu(void){
+  bool coin = (myWallet.entropySrc == coinEntropy);
+  drawDice(41, 49, coin ? SEEDER_GREY : SEEDER_GREEN);
+  tft.drawXBitmap(135, 57, iconMoneda, iconMonedaWidth, iconMonedaHeight,
+                  coin ? SEEDER_GREEN : SEEDER_GREY, TFT_BLACK);
+  tft.drawXBitmap(65,  HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight,
+                  coin ? TFT_BLACK : SEEDER_GREEN, TFT_BLACK);
+  tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight,
+                  coin ? SEEDER_GREEN : TFT_BLACK, TFT_BLACK);
+}
+
+void drawWordsMenu(void){
+  bool w12 = (myWallet.nWords == 12);
+  tft.drawXBitmap(41,  57, iconWords12, iconWords12Width, iconWords12Height,
+                  w12 ? SEEDER_GREEN : SEEDER_GREY, TFT_BLACK);
+  tft.drawXBitmap(135, 57, iconWords24, iconWords24Width, iconWords24Height,
+                  w12 ? SEEDER_GREY : SEEDER_GREEN, TFT_BLACK);
+  tft.drawXBitmap(65,  HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight,
+                  w12 ? SEEDER_GREEN : TFT_BLACK, TFT_BLACK);
+  tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight,
+                  w12 ? TFT_BLACK : SEEDER_GREEN, TFT_BLACK);
+}
+
 void doInitMenu(){
-  if(btnMove.click()) {
-    if(myWallet.preState == rgnSeed){
-      //Coin Seed
-      myWallet.preState = coinSeed;
-      tft.drawXBitmap(49, 49, RGN_icon, RGNiconWidth, RGNiconHeight, SEEDER_GREY, TFT_BLACK);
-      tft.drawXBitmap(135, 57, iconMoneda, iconMonedaWidth, iconMonedaHeight, SEEDER_GREEN, TFT_BLACK);
-      tft.drawXBitmap(65, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, TFT_BLACK, TFT_BLACK); //oldTriangle black
-      tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, SEEDER_GREEN, TFT_BLACK); //newTriangle green      
-    }else{
-      //RGN Seed
-      myWallet.preState = rgnSeed;
-      tft.drawXBitmap(49, 49, RGN_icon, RGNiconWidth, RGNiconHeight, SEEDER_GREEN , TFT_BLACK);
-      tft.drawXBitmap(135, 57, iconMoneda, iconMonedaWidth, iconMonedaHeight, SEEDER_GREY, TFT_BLACK);
-      tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, TFT_BLACK, TFT_BLACK); //oldTriangle black
-      tft.drawXBitmap(65, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, SEEDER_GREEN, TFT_BLACK); //newTriangle green
-    }
+  if(btnMove.click()){
+    myWallet.entropySrc = (myWallet.entropySrc == coinEntropy) ? diceEntropy : coinEntropy;
+    drawInitMenu();
   }
   if(btnSelect.click()){
-    clrWorkArea(); //Borramos zona donde había los otros iconos
-    myWallet.nWords = 24;
+    clrWorkArea();
+    myWallet.nWords = 12;
     myWallet.State = STATE_WORDS;
-    btnMove.forceClick(); //Forzamos click para que pinte el menu
+    drawWordsMenu();
   }
-  
 }
 
 /**************🍃 SELECT WORDS *****************/
+void startCoinCapture(void){
+  myWallet.State = STATE_COINSEED;
+  resetEntropy();
+  displayHeader("Flip coin - " + String(entropyBytes()*8), false);
+  tft.setCursor(0, 38);
+  tft.setFreeFont(FM9);
+  tft.setTextWrap(true);
+  tft.setTextColor(SEEDER_GREEN);
+  tft.println("SEL[Heads] - OK[Tails]");
+}
+
+void startDiceCapture(void){
+  myWallet.State = STATE_DICESEED;
+  resetEntropy();
+  myWallet.nRolls = 0;
+  diceValue = 1;
+  memset(diceRolls, 0, sizeof(diceRolls));
+  tft.setCursor(0, 34);
+  tft.setFreeFont(FM9);
+  tft.setTextWrap(false);
+  tft.setTextColor(SEEDER_GREEN);
+  tft.println("SEL[1-6] - OK[accept]");
+  drawDiceCapture();
+}
+
 void doMenuWords(){
-  if(btnMove.click()) {
-    if(myWallet.nWords == 12){
-      myWallet.nWords = 24;
-      tft.drawXBitmap(41, 57, iconWords12, iconWords12Width, iconWords12Height, SEEDER_GREY, TFT_BLACK);
-      tft.drawXBitmap(135, 57, iconWords24, iconWords12Width, iconWords12Height, SEEDER_GREEN, TFT_BLACK);
-      tft.drawXBitmap(65, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, TFT_BLACK, TFT_BLACK); //oldTriangle black
-      tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, SEEDER_GREEN, TFT_BLACK); //newTriangle green      
-    }else{
-      myWallet.nWords = 12;
-      tft.drawXBitmap(41, 57, iconWords12, iconWords12Width, iconWords12Height, SEEDER_GREEN, TFT_BLACK);
-      tft.drawXBitmap(135, 57, iconWords24, iconWords12Width, iconWords12Height, SEEDER_GREY, TFT_BLACK);
-      tft.drawXBitmap(155, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, TFT_BLACK, TFT_BLACK); //oldTriangle black
-      tft.drawXBitmap(65, HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight, SEEDER_GREEN, TFT_BLACK); //newTriangle green
-    }
+  if(btnMove.click()){
+    myWallet.nWords = (myWallet.nWords == 12) ? 24 : 12;
+    drawWordsMenu();
   }
   if(btnSelect.click()){
-    if(myWallet.preState == rgnSeed) {
-      displayGenerateSeed();
-      myWallet.State = STATE_SEED;
-      menuSeed = SHOW_SEED1;
-    }
-    else{
-      tft.fillScreen(TFT_BLACK);//Borramos pantalla entera
-      myWallet.State = STATE_COINSEED;
-      resetEntropy(); //Wipe any entropy left over from a previous seed
-      int nBits = entropyBytes() * 8;
-      String header = "Flip coin - " + String(nBits);
-      displayHeader(header, false); //Forzamos click para que pinte el menu
-      tft.setCursor (0, 38);
-      tft.setFreeFont(FM9);
-      tft.setTextWrap(true);
-      tft.setTextColor(SEEDER_GREEN);tft.println("SEL[Heads] - OK[Tails]");
-    }
+    tft.fillScreen(TFT_BLACK);
+    if(myWallet.entropySrc == coinEntropy) startCoinCapture();
+    else                                   startDiceCapture();
   }
 }
 
@@ -140,7 +173,6 @@ void showQRCode(String s) {
 }
 
 /**************🍃 MENU SHOWING SEED *****************/
-#define MAX_MENUSEED "4"
 void displayGenerateSeed(){
   uint8_t trash[1];
   displayGenerateSeed(true, trash); //Call function to generate random seed
@@ -166,7 +198,7 @@ void displayHeader(String headerText, bool printStep){
   tft.setTextSize(0);
   tft.setCursor (4, 14);
   tft.print(headerText); 
-  String step = String(menuSeed) + "/" + MAX_MENUSEED;
+  String step = String(seedStep()) + "/" + String(seedSteps());
   if(printStep){
     if(headerText.length()<19)
       for(int i=0; i<(18-headerText.length()); i++) tft.print(" ");
@@ -241,6 +273,20 @@ void displaySeedData2(void){
 
 }
 
+//The whole point of the device: you can take this hex to any offline BIP39
+//tool and get the same words back, without trusting the SEEDER's maths.
+void displaySeedEntropy(void){
+
+  tft.fillScreen(TFT_BLACK);
+  displayHeader("Entropy (hex)", true);
+
+  tft.setCursor (0, 38);
+  tft.setFreeFont(FM9);
+  tft.setTextWrap(true);
+  tft.setTextColor(SEEDER_GREY);
+  tft.println(myWallet.entropyHex);
+}
+
 void displaySeedQR(void){
 
   tft.fillScreen(TFT_BLACK);
@@ -262,6 +308,7 @@ void doShowSeed(void){
       case SHOW_SEED2:      displayMnemonic(12); break;
       case SHOW_DATA1:      displaySeedData1(); break;
       case SHOW_DATA2:      displaySeedData2(); break;
+      case SHOW_ENTROPY:    displaySeedEntropy(); break;
       case SHOW_EXPORTQR:   displaySeedQR(); break;
     }
   }
@@ -269,7 +316,7 @@ void doShowSeed(void){
     tft.fillScreen(TFT_BLACK);
     tft.pushImage(0, 0, menuHeaderWidth, menuHeaderHeight, menu_header);
     myWallet.State = STATE_INITMENU;
-    btnMove.forceClick(); //Forzamos click para que pinte el menu
+    drawInitMenu();
   }
 }
 
@@ -326,5 +373,50 @@ void doCoinSeed(void){
     displayGenerateSeed(entropy);
     myWallet.State = STATE_SEED;
     menuSeed = SHOW_SEED1;
+  }
+}
+
+/**************🍃 DICE ENTROPY *****************/
+
+void drawDiceCapture(void){
+
+  displayHeader("Roll dice - " + String(diceRollsNeeded() - myWallet.nRolls), false);
+
+  //Value being dialled in, big enough to read at arm's length
+  tft.fillRect(0, 48, D_ANCHO, 40, TFT_BLACK);
+  tft.setFreeFont(FMB24);
+  tft.setTextColor(SEEDER_GREEN);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString(String(diceValue), D2_ANCHO, 68, GFXFF);
+  tft.setTextDatum(TL_DATUM);
+
+  //Tail of the roll string, so a wrong roll is spotted immediately
+  tft.fillRect(0, 92, D_ANCHO, 22, TFT_BLACK);
+  tft.setFreeFont(FM9);
+  tft.setTextColor(SEEDER_GREY);
+  tft.setCursor(0, 108);
+  int from = (myWallet.nRolls > 21) ? myWallet.nRolls - 21 : 0;
+  for(int i=from; i<myWallet.nRolls; i++) tft.print(diceRolls[i]);
+}
+
+void doDiceSeed(void){
+
+  if(btnMove.click()){
+    diceValue = (diceValue % 6) + 1;   //1..6, wraps
+    drawDiceCapture();
+  }
+
+  if(btnSelect.click()){
+    diceRolls[myWallet.nRolls++] = '0' + diceValue;
+
+    if(myWallet.nRolls >= diceRollsNeeded()){
+      entropyFromDice(diceRolls, myWallet.nRolls, entropy);
+      displayGenerateSeed(entropy);
+      myWallet.State = STATE_SEED;
+      menuSeed = SHOW_SEED1;
+      return;
+    }
+    diceValue = 1;
+    drawDiceCapture();
   }
 }
