@@ -50,7 +50,7 @@ typedef struct {
    uint8_t State;           //SEEDER current menu position
    uint8_t preState;        //Current menu position before selecting it
    uint8_t nWords;          //Current number of Words selected on wallet
-   uint8_t nBCoinEntropy;   //Current bits needed to generate seed during coin Entropy
+   uint16_t nBCoinEntropy;  //Bits of entropy captured so far (24 words needs 256, does not fit in uint8_t)
    String xpub;             //Current xpub address
    String firstAddress;     //Current xpub address
    String mnemonic;         //Current words

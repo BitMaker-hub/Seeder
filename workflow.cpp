@@ -13,12 +13,26 @@ extern sWallet myWallet;
 extern sButton btnMove;
 extern sButton btnSelect;
 int menuSeed = SHOW_SEED1;
+int CursorX, CursorY;
+uint8_t entropy[32];   //Raw entropy captured from the user (128 or 256 bits)
 
 void displayMnemonic(int initWord);
 void displayHeader(String headerText, bool printStep);
 void displayGenerateSeed(void);
 void displayGenerateSeed(uint8_t * entropy);
 void displayGenerateSeed(bool isRGN, uint8_t * entropy);
+void printEntropyBytes(void);
+
+/**************🍃 ENTROPY HELPERS *****************/
+//Bytes of entropy a mnemonic of nWords needs: 16 for 12 words, 32 for 24
+uint8_t entropyBytes(void){ return myWallet.nWords * 4 / 3; }
+
+//Always call before capturing entropy: entropy[] is global and would otherwise
+//carry bits over from a previous seed, making the result impossible to verify.
+void resetEntropy(void){
+  memset(entropy, 0, sizeof(entropy));
+  myWallet.nBCoinEntropy = 0;
+}
 
 /**************🍃 WORKSATES *********************
   🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃
@@ -78,8 +92,8 @@ void doMenuWords(){
     else{
       tft.fillScreen(TFT_BLACK);//Borramos pantalla entera
       myWallet.State = STATE_COINSEED;
-      myWallet.nBCoinEntropy = 0; //Set to 0 number of bits gotten from coin seed
-      int nBits = (myWallet.nWords * 4/3) * 8;
+      resetEntropy(); //Wipe any entropy left over from a previous seed
+      int nBits = entropyBytes() * 8;
       String header = "Flip coin - " + String(nBits);
       displayHeader(header, false); //Forzamos click para que pinte el menu
       tft.setCursor (0, 38);
@@ -261,62 +275,57 @@ void doShowSeed(void){
 }
 
 
-/**************🍃 SELECT WORDS *****************/
-int CursorX, CursorY;
-uint8_t entropy[32];
+/**************🍃 COIN ENTROPY *****************/
+
+//Print every full byte of entropy captured so far, alternating colours
+void printEntropyBytes(void){
+  int x = tft.getCursorX();
+  int y = tft.getCursorY();
+  tft.setCursor(0,74);
+  for(uint16_t i=0; i<myWallet.nBCoinEntropy/8; i++){
+    tft.setTextColor((i%2 == 0) ? SEEDER_BLUE : SEEDER_GREEN);
+    String b = String(entropy[i], HEX);
+    if(b.length() == 1) b = "0" + b;
+    b.toUpperCase();
+    tft.print(b);
+  }
+  tft.setCursor(x,y);
+}
 
 void doCoinSeed(void){
-  
-  if(btnMove.click() || btnSelect.click()){
 
-    //Screen can holds 22chars per line clear line
-    if(myWallet.nBCoinEntropy%22 == 0){
-      tft.fillRect(0,44,D_ANCHO,15, TFT_BLACK);
-      tft.setCursor(0,56);
-    }
+  if(!(btnMove.click() || btnSelect.click())) return;
 
-    CursorX = tft.getCursorX();
-    CursorY = tft.getCursorY();
-    int maxBitsNeeded = (myWallet.nWords * 4/3) * 8;
-    String header = "Flip coin - " + String(maxBitsNeeded - myWallet.nBCoinEntropy);
-    displayHeader(header, false); //Forzamos click para que pinte el menu
-    tft.setFreeFont(FM9);
-    tft.setCursor (CursorX, CursorY);
-    tft.setTextColor(SEEDER_GREY);
-    uint8_t coin;
-    if(btnMove.click()) coin = 1;
-    else                coin = 0;
-    
-    tft.print(coin);
-    uint8_t cByte = myWallet.nBCoinEntropy/8;
-    entropy[cByte] = entropy[cByte] + (coin << (7- myWallet.nBCoinEntropy%8));
-    Serial.print("Byte: ");Serial.print(cByte);Serial.print(" - Entropy: ");Serial.print(String(entropy[cByte],BIN)); Serial.print(" - d: ");Serial.println((coin << (7- myWallet.nBCoinEntropy%8)),BIN);
-    
-    //Check all entropy gotten
-    if(myWallet.nBCoinEntropy == maxBitsNeeded) {
-      //myWallet.nWords = 24;
-      displayGenerateSeed(entropy);
-      myWallet.State = STATE_SEED;
-      menuSeed = SHOW_SEED1;
-    }
-    
-    //Increase number of bits gotten from coin seed
-    myWallet.nBCoinEntropy++; 
+  uint16_t maxBits = entropyBytes() * 8;
 
-    //Print entropy every 8bits
-    if(myWallet.nBCoinEntropy%8 == 0){
-      CursorX = tft.getCursorX();
-      CursorY = tft.getCursorY();
-      tft.setCursor(0,74);
-      for(int x=0; x<(myWallet.nBCoinEntropy + 1)/8; x++){
-        if(x%2 == 0) tft.setTextColor(SEEDER_BLUE);
-        else tft.setTextColor(SEEDER_GREEN);
-        String temp = String(entropy[x], HEX);
-        if(temp.length() == 1) temp = "0" + temp;
-        temp.toUpperCase();
-        tft.print(temp);
-      }
-      tft.setCursor (CursorX, CursorY);
-    }
+  //Screen holds 22 chars per line, wipe it when a new line starts
+  if(myWallet.nBCoinEntropy%22 == 0){
+    tft.fillRect(0,44,D_ANCHO,15, TFT_BLACK);
+    tft.setCursor(0,56);
+  }
+  CursorX = tft.getCursorX();
+  CursorY = tft.getCursorY();
+
+  uint8_t coin = btnMove.click() ? 1 : 0;
+
+  //Store the bit. OR, never ADD: adding would carry into neighbouring bits
+  entropy[myWallet.nBCoinEntropy/8] |= (coin << (7 - myWallet.nBCoinEntropy%8));
+  myWallet.nBCoinEntropy++;
+
+  displayHeader("Flip coin - " + String(maxBits - myWallet.nBCoinEntropy), false);
+  tft.setFreeFont(FM9);
+  tft.setCursor(CursorX, CursorY);
+  tft.setTextColor(SEEDER_GREY);
+  tft.print(coin);
+
+  //Print entropy every 8 bits
+  if(myWallet.nBCoinEntropy%8 == 0) printEntropyBytes();
+
+  //Every bit is in -> derive the seed. Checked AFTER the increment so the
+  //counter reaching 0 on screen means "done", not "one more flip please"
+  if(myWallet.nBCoinEntropy >= maxBits){
+    displayGenerateSeed(entropy);
+    myWallet.State = STATE_SEED;
+    menuSeed = SHOW_SEED1;
   }
 }
