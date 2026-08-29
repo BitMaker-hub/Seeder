@@ -8,6 +8,20 @@
 **********************************/
 enum { rgnSeed, coinSeed };
 /**********************************
+ 🍃 DEBUG
+ The T-Display is powered over USB, so ANYTHING printed here ends up on the
+ host PC. The mnemonic and the raw entropy are never printed, at any level.
+ This flag only enables harmless UI traces (button events).
+**********************************/
+#define SEEDER_DEBUG      0
+
+#if SEEDER_DEBUG
+  #define DBGLN(x)        Serial.println(x)
+#else
+  #define DBGLN(x)        do{}while(0)
+#endif
+
+/**********************************
  🍃 GENERAL
 **********************************/
 #define SERIAL_BAUD       115200   // baudrate debug

@@ -44,7 +44,6 @@ void createSeed(int nWords){
   uint8_t arr[512] = {0};
   random_buffer_esp(arr, 512);
   String mn = generateMnemonic(nWords, arr, sizeof(arr));
-  Serial.println(mn);
 
   // Extract account zpub and the FIRST RECEIVE address
   HDPrivateKey hd(mn, password);
@@ -70,14 +69,6 @@ void createSeed(int nWords, uint8_t * entropy){
     return;
   }
   String mn = mnemonicFromEntropy(entropy, len);
-  Serial.print("Hex entropy: ");
-  for(int i=0; i<32; i++){
-   if (entropy[i] < 16) { Serial.print("0"); }
-   Serial.print(entropy[i], HEX);
-   Serial.print(" ");
-  }
-  Serial.println();
-  Serial.println(mn);
 
   // Extract account zpub and the FIRST RECEIVE address
   HDPrivateKey hd(mn, password);

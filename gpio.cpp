@@ -27,7 +27,6 @@ void EEPROMsetup(){
     }
   }
   myWallet.mnemonic = mnemonic;
-  Serial.print("Current mnemonic: "); Serial.println(mnemonic);
   myWallet.preState = rgnSeed;
   
 }
@@ -93,7 +92,7 @@ void sButton::check(void)
             if (msecLst)  { // 2nd press
                 msecLst = 0; 
                 clickState = DoubleClick;
-                Serial.println("DoubleClick --> ");
+                DBGLN("DoubleClick");
                 return;
             }
             else
@@ -106,7 +105,7 @@ void sButton::check(void)
         if(but != LOW) {
           msecLst = 0;
           clickState = SingleClick;
-          Serial.println("SingleClick --> ");
+          DBGLN("SingleClick");
           return;
         }
     }
@@ -116,7 +115,7 @@ void sButton::check(void)
         if(elapsed > ButLongClick) {
           msecLst = 0; 
           clickState = LongClick;
-          Serial.println("LongClick --> ");
+          DBGLN("LongClick");
           return;
         }
     }
