@@ -38,7 +38,6 @@ void Init_TFT(void){
   //tft.setTextDatum(ML_DATUM); //MIDDLE CENTER - MC_DATUM / TOP CENTER - TC_DATUM
   //tft.setTextSize(1);
   //tft.setFreeFont(FF22);
-  //tft.drawString("RGN SEED", 8 , 15, GFXFF); 
   
   myWallet.entropySrc = coinEntropy;
   drawInitMenu();
