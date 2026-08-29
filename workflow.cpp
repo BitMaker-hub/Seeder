@@ -19,9 +19,7 @@ uint8_t diceValue = 1;             //Value the user is currently dialling in
 
 void displayMnemonic(int initWord);
 void displayHeader(String headerText, bool printStep);
-void displayGenerateSeed(void);
 void displayGenerateSeed(uint8_t * entropy);
-void displayGenerateSeed(bool isRGN, uint8_t * entropy);
 void printEntropyBytes(void);
 void drawDiceCapture(void);
 
@@ -173,19 +171,13 @@ void showQRCode(String s) {
 }
 
 /**************🍃 MENU SHOWING SEED *****************/
-void displayGenerateSeed(){
-  uint8_t trash[1];
-  displayGenerateSeed(true, trash); //Call function to generate random seed
-}
-void displayGenerateSeed(uint8_t * entropy) { displayGenerateSeed(false, entropy);} //Call function to use entropy
-void displayGenerateSeed(bool isRGN, uint8_t * entropy){
+void displayGenerateSeed(uint8_t * entropy){
   tft.fillScreen(TFT_BLACK);
   tft.setFreeFont(FF1);
   tft.setCursor (40, D2_ALTO+10);
   tft.setTextColor(SEEDER_GREY);
   tft.println("Generating seed");
-  if(isRGN) createSeed(myWallet.nWords); // ---> Create Seed
-  else createSeed(myWallet.nWords, entropy); // ---> Create Seed
+  createSeed(myWallet.nWords, entropy);
 
   displayMnemonic(0);
   menuSeed = SHOW_SEED1;
