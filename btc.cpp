@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <EEPROM.h>
 #include <bootloader_random.h>
 #include "btc.h"
 #include "Bitcoin.h"
@@ -8,15 +7,6 @@
 extern sWallet myWallet;
 
 String password="";
-
-/**************🍃 INIT WALLET *******************/
-void initWallet(void){
-  
-  //Test last word generation - uncoment to test your coin data
-  //uint8_t data[16]={1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  //createSeed(12, data);
-  
-}
 
 void random_buffer_esp(uint8_t *buf, size_t len)
 {

@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <EEPROM.h>
 #include "qrcoded.h"
 #include "gpio.h"
 #include "btc.h"

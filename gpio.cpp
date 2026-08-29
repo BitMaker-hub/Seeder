@@ -1,5 +1,4 @@
 #include "GlobalVARS.h"
-#include <EEPROM.h>
 #include "gpio.h"
 #include "Wire.h"
 #include "workflow.h"
@@ -10,26 +9,6 @@ extern TFT_eSPI tft = TFT_eSPI();  // Invoke library, pins defined in User_Setup
 extern sWallet myWallet;
 extern sButton btnMove;
 extern sButton btnSelect;
-
-/***********************🍃 EEPROM DATA ******************************/
-
-void EEPROMsetup(){
-  
-  EEPROM.begin(EEPROM_SIZE);
-   
-  /********🍃 READ MNMONIC ************/
-  String mnemonic="";
-  if(EEPROM.read(1) == STX){
-    for(uint16_t i=2; i<400; i++){
-      uint8_t nm = EEPROM.read(i);
-      if(nm == ETX) break;
-      mnemonic = mnemonic + char(nm);
-    }
-  }
-  myWallet.mnemonic = mnemonic;
-  myWallet.preState = rgnSeed;
-  
-}
 
 /*****************🍃 TFT WORK *********************/
 
