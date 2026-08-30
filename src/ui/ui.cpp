@@ -94,7 +94,8 @@ void caret(int cx, int y, int w, int h, uint16_t col){
 }
 
 void bar(int x, int y, int w, int h, float frac){
-  if(frac < 0) frac = 0; if(frac > 1) frac = 1;
+  if(frac < 0) frac = 0;
+  if(frac > 1) frac = 1;
   tft.fillRect(x, y, w, h, UI_TRACK);
   tft.fillRect(x, y, (int)(w * frac + 0.5f), h, UI_ACCENT);
 }
@@ -157,15 +158,6 @@ static void head(const char *title, uint8_t step, uint8_t total){
   }
 #endif
 
-/* Parte una cadena larga en líneas del ancho disponible */
-static void bodyWrap(const String &s, int y, uint16_t col){
-  int i = 0;
-  while(i < (int)s.length()){
-    bodyLine(s.substring(i, min((int)s.length(), i + BODY_CPL)), y, col);
-    i += BODY_CPL; y += BODY_LH;
-  }
-}
-
 /*==============================================================
   PANTALLAS
 ==============================================================*/
@@ -173,6 +165,7 @@ static void bodyWrap(const String &s, int y, uint16_t col){
 void splash(void){
   tft.fillScreen(UI_BG);
   tft.pushImage(20, 23, logoWidth, logoHeight, seeder_logo);
+  tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, 120, UI_DIM, 'C', 1);
   delay(2000);
   tft.fillScreen(UI_BG);
   tft.pushImage(60, 34, logouBTCWidth, logouBTCHeight, uBitcoinLogo);
@@ -251,15 +244,16 @@ void words(uint8_t nWords){
 void coinEnter(uint16_t totalBits){
   tft.fillScreen(UI_BG);
   eyebrow("FLIP COIN");
-  /* Fija, no pegada al número: al pasar de 100 a 99 el número encoge, la
-     etiqueta se corría y dejaba rastro de la posición anterior. Además
-     saltar de sitio mientras cuentas atrás distrae. */
-  tiny("BITS LEFT", 104, 46, UI_DIM, 'L', 1);
   rail("HEADS", "TAILS", false);   //arriba cara, abajo cruz: no hace falta más
 }
 
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy){
-  bigNumber(totalBits - done, 56);
+  /* La etiqueta va pegada al número y se corre con él. El rastro que dejaba
+     al pasar de 100 a 99 era que el rectángulo de borrado cubría y 40..50
+     mientras el texto ocupa 46..53: sobrevivían las filas de abajo. */
+  const int endX = bigNumber(totalBits - done, 56);
+  tft.fillRect(endX, 44, UI_RAIL_X - endX - 4, 12, UI_BG);
+  tiny("BITS LEFT", endX + 10, 46, UI_DIM, 'L', 1);
 
   /* Los últimos 16 lanzamientos: lleno = cara, hueco = cruz */
   const int from = (done > 16) ? done - 16 : 0;

@@ -88,7 +88,10 @@ el mismo hoy y dentro de cinco años.
 
 ## Lo que deliberadamente NO hacemos
 
-**No mostramos el hash del firmware en pantalla.** Sería teatro: el firmware que
+**No mostramos el hash del firmware en pantalla.** La pantalla de arranque sí
+enseña la versión y el commit, pero eso es sólo una etiqueta para saber qué
+lleva cada placa: un firmware manipulado puede imprimir el número que quiera.
+No lo confundas con una prueba. Sería teatro: el firmware que
 dibuja el hash es el mismo que habría que verificar, así que a uno malicioso le
 basta con imprimir una constante. Ningún programa puede demostrar su propia
 integridad ante sí mismo. La verificación tiene que venir de fuera, y por eso está
