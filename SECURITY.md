@@ -147,5 +147,5 @@ sirve de nada:
 
 ## Reportar un problema
 
-Si encuentras un fallo de seguridad, escribe a **bitmaker@bitronics.store** antes
+Si encuentras un fallo de seguridad, escribe a **bitmaker@bitronics.com** antes
 de publicarlo, y danos margen para sacar una corrección.
