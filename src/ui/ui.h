@@ -12,6 +12,7 @@ namespace ui {
 /*** Piezas reutilizables, expuestas por si hacen falta fuera ***/
 void tiny(const char *s, int x, int y, uint16_t col, char datum='L', int sp=0, uint8_t size=1);
 void die(int x, int y, int size, uint8_t value, uint16_t col);
+void coin(int x, int y, int size, uint16_t col);
 void caret(int cx, int y, int w, int h, uint16_t col);
 void bar(int x, int y, int w, int h, float frac);
 
