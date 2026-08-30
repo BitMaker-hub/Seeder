@@ -26,6 +26,13 @@
 
 /* Los dos botones del T-Display están en el borde derecho, uno arriba y
    otro abajo, así que la pista de cada uno se pinta a su altura.        */
+/* El menú lleva un raíl más estrecho y sólo con símbolos: allí los dos
+   botones se interpretan solos y la carcasa ya los rotula. Que cambie de
+   anchura entre capas es, además, otra señal de que no estás en el mismo
+   sitio - menú, captura y datos son tres interfaces, no una. */
+#define UI_MRAIL_X    214
+#define UI_MRAIL_CX   227
+
 #define UI_RAIL_TOP_Y   22    // MOVE
 #define UI_RAIL_BOT_Y   96    // OK
 

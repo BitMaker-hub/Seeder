@@ -5,6 +5,7 @@
 #include "../Lib/images.h"
 #include "../Lib/Free_Fonts.h"
 #include "../qrcoded.h"
+#include "brand.h"
 
 extern TFT_eSPI tft;
 
@@ -151,47 +152,70 @@ void splash(void){
   tft.fillScreen(UI_BG);
 }
 
+/* Cabecera de marca: verde macizo con tinta negra. Es lo que separa el menú
+   de las pantallas de trabajo, y por eso vuelve. Sin la palabra MENU: ya se
+   ve. El logotipo y la hoja son recortes del arte original (ver brand.h). */
+static void greenHead(void){
+  tft.fillRect(0, 0, UI_W, 36, UI_ACCENT);
+  tft.pushImage(10,  5, seederMarkWidth, seederMarkHeight, seederMark);
+  tft.pushImage(203, 2, leafMarkWidth,   leafMarkHeight,   leafMark);
+}
+
+/* Raíl estrecho, sólo símbolos: arriba dos puntas opuestas para
+   desplazarse, abajo un check para confirmar. */
+static void thinRail(void){
+  tft.drawFastVLine(UI_MRAIL_X, 36, UI_H-36, UI_TRACK);
+  caret(UI_MRAIL_CX, 62, 13, -8, UI_DIM);
+  caret(UI_MRAIL_CX, 68, 13,  8, UI_DIM);
+  for(int i=0; i<2; i++){                       //grosor 2, no hay drawWideLine
+    tft.drawLine(219, 108+i, 225, 114+i, UI_ACCENT);
+    tft.drawLine(225, 114+i, 236, 101+i, UI_ACCENT);
+  }
+}
+
+/* Fila de opción: barra de acento a la izquierda cuando está elegida, y
+   debajo lo que cuesta esa opción. Admite una tercera el día que haga falta. */
+static void listRow(int y, bool sel, uint16_t col, const char *lab, const char *sub, int tx){
+  if(sel) tft.fillRect(4, y, 3, 40, UI_ACCENT);
+  tiny(lab, tx, y+4,  col, 'L', 1, UI_BIG_BODY);
+  tiny(sub, tx, y+26, sel ? UI_DIM : UI_TRACK, 'L', 1);
+}
+
 void menu(bool diceSelected){
-  tft.pushImage(0, 0, menuHeaderWidth, menuHeaderHeight, menu_header);
-  tft.fillRect(0, menuHeaderHeight, UI_W, UI_H - menuHeaderHeight, UI_BG);
+  tft.fillScreen(UI_BG);
+  greenHead();
+  thinRail();
 
   const uint16_t dc = diceSelected ? UI_ACCENT : UI_DIM;
   const uint16_t cc = diceSelected ? UI_DIM    : UI_ACCENT;
 
-  die(49, 57, 46, 5, dc);
-  tiny("DICE SEED", 72, 109, dc, 'C', 0);
-  tft.drawXBitmap(135, 57, iconMoneda, iconMonedaWidth, iconMonedaHeight, cc, UI_BG);
+  die(14, 48, 32, 5, dc);
+  listRow(44, diceSelected, dc, "DICE SEED", "50 OR 99 ROLLS", 58);
 
-  caret(72,  40, 13, 7, diceSelected ? UI_ACCENT : UI_TRACK);
-  caret(162, 40, 13, 7, diceSelected ? UI_TRACK  : UI_ACCENT);
-}
-
-/* Tarjeta con el número en una fuente de verdad: los dígitos del bitmap
-   original iban en manuscrita y a esta resolución no se leían. */
-/* FMB24 mide 28px por dígito: "12" son 56px y no cabía en la tarjeta.
-   FMB18 son 42px y deja 9px de aire a cada lado. */
-static void wordCard(int x, int y, int w, int h, uint8_t n, uint16_t col, uint16_t sub){
-  tft.drawRoundRect(x, y, w, h, 8, col);
-  tft.drawRoundRect(x+1, y+1, w-2, h-2, 7, col);
-  char b[4]; snprintf(b, sizeof(b), "%u", n);
-  tft.setFreeFont(FMB18);
-  tft.setTextColor(col);
-  tft.setTextDatum(BC_DATUM);
-  tft.drawString(b, x + w/2, y + h - 18, GFXFF);
-  tft.setTextDatum(TL_DATUM);
-  tiny("WORDS", x + w/2, y + h - 14, sub, 'C', 1);
+  tft.drawXBitmap(14, 96, coinSmall, coinSmallWidth, coinSmallHeight, cc, UI_BG);
+  listRow(88, !diceSelected, cc, "COIN SEED", "128 OR 256 FLIPS", 58);
 }
 
 void words(uint8_t nWords){
-  tft.pushImage(0, 0, menuHeaderWidth, menuHeaderHeight, menu_header);
-  tft.fillRect(0, menuHeaderHeight, UI_W, UI_H - menuHeaderHeight, UI_BG);
+  tft.fillScreen(UI_BG);
+  greenHead();
+  thinRail();
 
   const bool w12 = (nWords == 12);
-  wordCard(42,  54, 60, 58, 12, w12 ? UI_ACCENT : UI_DIM,    w12 ? UI_DIM   : UI_TRACK);
-  wordCard(132, 54, 60, 58, 24, w12 ? UI_DIM    : UI_ACCENT, w12 ? UI_TRACK : UI_DIM);
+  const uint16_t c1 = w12 ? UI_ACCENT : UI_DIM;
+  const uint16_t c2 = w12 ? UI_DIM    : UI_ACCENT;
 
-  caret(72,  40, 13, 7, w12 ? UI_ACCENT : UI_TRACK);
-  caret(162, 40, 13, 7, w12 ? UI_TRACK  : UI_ACCENT);
+  /* FMB18, no FMB24: a 28px por dígito el numeral pesaba demasiado en la
+     fila. Centrados en x=36, que es el centro de la columna del icono en la
+     pantalla anterior, para que las dos casen. */
+  tft.setFreeFont(FMB18);
+  tft.setTextDatum(BC_DATUM);
+  tft.setTextColor(c1); tft.drawString("12", 36, 74,  GFXFF);
+  tft.setTextColor(c2); tft.drawString("24", 36, 118, GFXFF);
+  tft.setTextDatum(TL_DATUM);
+
+  listRow(44, w12,  c1, "WORDS", "128 BITS OF ENTROPY", 72);
+  listRow(88, !w12, c2, "WORDS", "256 BITS OF ENTROPY", 72);
 }
 
 /*----------------- captura de moneda -----------------*/
