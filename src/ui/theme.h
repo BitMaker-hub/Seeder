@@ -37,6 +37,13 @@
 #define UI_TINY_H     8
 #define UI_BODY_TINY  1
 
+/* La misma fuente a doble tamaño para lo que hay que copiar a mano: las
+   palabras y la dirección. Un solo tipo de letra, dos tamaños, que es
+   jerarquía y no mezcla. 12px de avance -> 18 caracteres por línea.        */
+#define UI_BIG_BODY   2
+#define UI_BIG_CPL    ((UI_W - 2*UI_M) / (UI_TINY_W * UI_BIG_BODY))
+#define UI_BIG_LH     20
+
 /*** Ancho de línea de las fuentes monoespaciadas **********************/
 #define UI_MONO_W     11      // FreeMono9pt7b avanza 11px
 #define UI_MONO_CPL   (UI_W / UI_MONO_W)          // 21

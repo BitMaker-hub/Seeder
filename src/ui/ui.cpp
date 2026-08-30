@@ -16,19 +16,26 @@ namespace ui {
 
 /* Fuente 5x7 integrada. Se dibuja carácter a carácter para poder
    espaciarla: las versalitas necesitan aire o se leen como un bloque. */
-void tiny(const char *s, int x, int y, uint16_t col, char datum, int sp){
-  int n = strlen(s);
-  int w = n * (UI_TINY_W + sp) - sp;
+void tiny(const char *s, int x, int y, uint16_t col, char datum, int sp, uint8_t size){
+  const int n  = strlen(s);
+  const int adv = UI_TINY_W * size + sp;
+  const int w  = n * adv - sp;
   int px = x;
   if(datum == 'C')      px = x - w/2;
   else if(datum == 'R') px = x - w;
   tft.setTextFont(1);
-  tft.setTextSize(1);
+  tft.setTextSize(size);
   tft.setTextColor(col, UI_BG);
-  for(int i=0; i<n; i++){ tft.drawChar(s[i], px, y, 1); px += UI_TINY_W + sp; }
+  for(int i=0; i<n; i++){ tft.drawChar(s[i], px, y, 1); px += adv; }
+  tft.setTextSize(1);
 }
-static void tiny(const String &s, int x, int y, uint16_t col, char datum='L', int sp=0){
-  tiny(s.c_str(), x, y, col, datum, sp);
+static void tiny(const String &s, int x, int y, uint16_t col, char datum='L', int sp=0, uint8_t size=1){
+  tiny(s.c_str(), x, y, col, datum, sp, size);
+}
+
+/* Cuerpo grande: lo que el usuario tiene que copiar a mano */
+static void bigLine(const String &s, int y, uint16_t col){
+  tiny(s, UI_M, y, col, 'L', 0, UI_BIG_BODY);
 }
 
 /* Cara del dado por su valor: los puntos salen de una máscara sobre la
@@ -257,19 +264,23 @@ void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint
     String w = (sp < 0) ? mn.substring(start) : mn.substring(start, sp);
     start = (sp < 0) ? mn.length() : sp + 1;
     if(idx++ < from){ continue; }
-    if(used + (int)w.length() + 1 > BODY_CPL){
-      bodyLine(line, y, UI_TEXT); y += BODY_LH; line = ""; used = 0;
+    if(used + (int)w.length() + 1 > UI_BIG_CPL){
+      bigLine(line, y, UI_TEXT); y += UI_BIG_LH; line = ""; used = 0;
     }
     line += w; line += ' '; used += w.length() + 1;
     shown++;
   }
-  if(line.length()) bodyLine(line, y, UI_TEXT);
+  if(line.length()) bigLine(line, y, UI_TEXT);
 }
 
 void seedAddress(const String &addr, uint8_t step, uint8_t total){
   head("FIRST ADDRESS", step, total);
-  bodyLine("m/84'/0'/0'/0/0", 34, UI_ACCENT);
-  bodyWrap(addr, 34 + 2*BODY_LH, UI_TEXT);
+  bodyLine("m/84'/0'/0'/0/0", 30, UI_ACCENT);
+  int y = 48;
+  for(int i=0; i<(int)addr.length(); i += UI_BIG_CPL){
+    bigLine(addr.substring(i, min((int)addr.length(), i + UI_BIG_CPL)), y, UI_TEXT);
+    y += UI_BIG_LH;
+  }
 }
 
 void seedZpub(const String &zpub, uint8_t step, uint8_t total){
