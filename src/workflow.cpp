@@ -21,7 +21,7 @@ void displayMnemonic(int initWord);
 void displayHeader(String headerText, bool printStep);
 void displayGenerateSeed(uint8_t * entropy);
 void printEntropyBytes(void);
-void drawDiceCapture(void);
+void drawDiceValue(void);
 
 /**************🍃 ENTROPY HELPERS *****************/
 //Bytes of entropy a mnemonic of nWords needs: 16 for 12 words, 32 for 24
@@ -48,21 +48,29 @@ void resetEntropy(void){
 
 /**************🍃 INITIAL MENU *****************/
 
-//No XBM for the die: drawn with primitives so it can be tinted like the icons
-void drawDice(int x, int y, uint16_t color){
-  const int s = 58, r = 10, pip = 4;
-  tft.fillRoundRect(x, y, s, s, r, TFT_BLACK);
-  tft.drawRoundRect(x, y, s, s, r, color);
-  tft.drawRoundRect(x+1, y+1, s-2, s-2, r-1, color);
-  const int a = x + s/4, b = x + s/2, c = x + (3*s)/4;
-  const int d = y + s/4, e = y + s/2, f = y + (3*s)/4;
-  const int pips[5][2] = {{a,d},{c,d},{b,e},{a,f},{c,f}};   //face 5
-  for(int i=0; i<5; i++) tft.fillCircle(pips[i][0], pips[i][1], pip, color);
+//Draws a die of the given size showing the pips of `value`. No XBM: drawn with
+//primitives so the same function serves the menu icon and the capture screen.
+void drawDice(int x, int y, int size, uint8_t value, uint16_t color){
+  //Pips of each face as a bitmask over the 3x3 grid, bit 0 = top left
+  static const uint16_t FACE[6] = { 0x010, 0x101, 0x111, 0x145, 0x155, 0x16D };
+  if(value < 1 || value > 6) return;
+
+  const int r = size/6, pip = size/10;
+  tft.fillRoundRect(x, y, size, size, r, TFT_BLACK);
+  tft.drawRoundRect(x, y, size, size, r, color);
+  tft.drawRoundRect(x+1, y+1, size-2, size-2, r-1, color);
+
+  const uint16_t face = FACE[value-1];
+  for(int i=0; i<9; i++){
+    if(!(face & (1 << i))) continue;
+    tft.fillCircle(x + (size * (1 + 2*(i%3)))/6,
+                   y + (size * (1 + 2*(i/3)))/6, pip, color);
+  }
 }
 
 void drawInitMenu(void){
   bool coin = (myWallet.entropySrc == coinEntropy);
-  drawDice(41, 49, coin ? SEEDER_GREY : SEEDER_GREEN);
+  drawDice(41, 49, 58, 5, coin ? SEEDER_GREY : SEEDER_GREEN);
   tft.drawXBitmap(135, 57, iconMoneda, iconMonedaWidth, iconMonedaHeight,
                   coin ? SEEDER_GREEN : SEEDER_GREY, TFT_BLACK);
   tft.drawXBitmap(65,  HEADER_HEIGHT, iconTriangle, iconTriangleWidth, iconTriangleHeight,
@@ -119,7 +127,8 @@ void startDiceCapture(void){
   tft.setTextWrap(false);
   tft.setTextColor(SEEDER_GREEN);
   tft.println("SEL[1-6] - OK[accept]");
-  drawDiceCapture();
+  displayHeader("Roll dice - " + String(diceRollsNeeded()), false);
+  drawDiceValue();
 }
 
 void doMenuWords(){
@@ -336,8 +345,8 @@ void doCoinSeed(void){
 
   uint16_t maxBits = entropyBytes() * 8;
 
-  //Screen holds 22 chars per line, wipe it when a new line starts
-  if(myWallet.nBCoinEntropy%22 == 0){
+  //Wipe the line and start it over when it is full
+  if(myWallet.nBCoinEntropy%CHARS_PER_LINE == 0){
     tft.fillRect(0,44,D_ANCHO,15, TFT_BLACK);
     tft.setCursor(0,56);
   }
@@ -370,36 +379,41 @@ void doCoinSeed(void){
 
 /**************🍃 DICE ENTROPY *****************/
 
-void drawDiceCapture(void){
-
-  displayHeader("Roll dice - " + String(diceRollsNeeded() - myWallet.nRolls), false);
-
-  //Value being dialled in, big enough to read at arm's length
-  tft.fillRect(0, 48, D_ANCHO, 40, TFT_BLACK);
-  tft.setFreeFont(FMB24);
-  tft.setTextColor(SEEDER_GREEN);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString(String(diceValue), D2_ANCHO, 68, GFXFF);
+//The value being dialled in: the die face, with the numeral smaller beside it
+void drawDiceValue(void){
+  tft.fillRect(0, 40, D_ANCHO, 48, TFT_BLACK);
+  drawDice(98, 42, 44, diceValue, SEEDER_GREEN);
+  tft.setFreeFont(FMB18);
+  tft.setTextColor(SEEDER_GREY);
+  tft.setTextDatum(MR_DATUM);
+  tft.drawString(String(diceValue), 90, 64, GFXFF);
   tft.setTextDatum(TL_DATUM);
+}
 
-  //Tail of the roll string, so a wrong roll is spotted immediately
-  tft.fillRect(0, 92, D_ANCHO, 22, TFT_BLACK);
+//One digit onto the roll line. 99 rolls never fit, so the line is filled and
+//then wiped and written over again, the same way the coin bits behave.
+void appendRollDigit(char digit){
+  if(myWallet.nRolls % CHARS_PER_LINE == 0){
+    tft.fillRect(0, 90, D_ANCHO, 24, TFT_BLACK);
+    tft.setCursor(0, 106);
+  }
   tft.setFreeFont(FM9);
   tft.setTextColor(SEEDER_GREY);
-  tft.setCursor(0, 108);
-  int from = (myWallet.nRolls > 21) ? myWallet.nRolls - 21 : 0;
-  for(int i=from; i<myWallet.nRolls; i++) tft.print(diceRolls[i]);
+  tft.print(digit);
 }
 
 void doDiceSeed(void){
 
   if(btnMove.click()){
     diceValue = (diceValue % 6) + 1;   //1..6, wraps
-    drawDiceCapture();
+    drawDiceValue();
   }
 
   if(btnSelect.click()){
-    diceRolls[myWallet.nRolls++] = '0' + diceValue;
+    char digit = '0' + diceValue;
+    diceRolls[myWallet.nRolls] = digit;
+    appendRollDigit(digit);            //uses nRolls as the column
+    myWallet.nRolls++;
 
     if(myWallet.nRolls >= diceRollsNeeded()){
       entropyFromDice(diceRolls, myWallet.nRolls, entropy);
@@ -408,7 +422,9 @@ void doDiceSeed(void){
       menuSeed = SHOW_SEED1;
       return;
     }
+
     diceValue = 1;
-    drawDiceCapture();
+    displayHeader("Roll dice - " + String(diceRollsNeeded() - myWallet.nRolls), false);
+    drawDiceValue();
   }
 }
