@@ -51,10 +51,39 @@ void die(int x, int y, int s, uint8_t value, uint16_t col){
   tft.drawRoundRect(x, y, s, s, r, col);
   if(s >= 32) tft.drawRoundRect(x+1, y+1, s-2, s-2, r-1, col);
 
+  /* 0.22 / 0.50 / 0.78 del lado, no 1/6 / 3/6 / 5/6: los de las esquinas
+     se iban al borde y ensuciaban la cara */
   const uint16_t face = FACE[value-1];
   for(int i=0; i<9; i++){
     if(!(face & (1 << i))) continue;
-    tft.fillCircle(x + (s * (1 + 2*(i%3)))/6, y + (s * (1 + 2*(i/3)))/6, pip, col);
+    tft.fillCircle(x + (s*(22 + 28*(i%3)))/100, y + (s*(22 + 28*(i/3)))/100, pip, col);
+  }
+}
+
+/* Moneda de canto: cara elíptica a la izquierda y el canto a la derecha con
+   sus estrías. Dibujada entera, así se tiñe igual que el dado y no depende
+   de reducir un bitmap, que a este tamaño quedaba embarrado. */
+void coin(int x, int y, int s, uint16_t col){
+  const int rx = s/4, ry = s/2 - 2, dep = s/3;
+  const int cx = x + rx + 1, cy = y + s/2;
+
+  tft.drawEllipse(cx, cy, rx, ry, col);              //cara
+
+  int prev = -1;                                     //borde exterior del canto
+  for(int j = -ry; j <= ry; j++){
+    const int w = (int)(rx * sqrtf(fmaxf(0.0f, 1.0f - (float)(j*j)/(float)(ry*ry))) + 0.5f);
+    if(prev >= 0 && abs(w - prev) > 1){              //cerrar el escalón
+      for(int q = min(w,prev); q <= max(w,prev); q++) tft.drawPixel(cx+dep+q, cy+j, col);
+    }else tft.drawPixel(cx+dep+w, cy+j, col);
+    prev = w;
+  }
+  tft.drawFastHLine(cx, cy-ry, dep+1, col);          //tapas
+  tft.drawFastHLine(cx, cy+ry, dep+1, col);
+
+  for(int k = -3; k <= 3; k++){                      //estrías
+    const int j = (k*ry)/4;
+    const int w = (int)(rx * sqrtf(fmaxf(0.0f, 1.0f - (float)(j*j)/(float)(ry*ry))) + 0.5f);
+    tft.drawFastHLine(cx+w, cy+j, dep, col);
   }
 }
 
@@ -192,7 +221,7 @@ void menu(bool diceSelected){
   die(14, 48, 32, 5, dc);
   listRow(44, diceSelected, dc, "DICE SEED", "50 OR 99 ROLLS", 58);
 
-  tft.drawXBitmap(14, 96, coinSmall, coinSmallWidth, coinSmallHeight, cc, UI_BG);
+  coin(14, 92, 32, cc);
   listRow(88, !diceSelected, cc, "COIN SEED", "128 OR 256 FLIPS", 58);
 }
 
@@ -222,15 +251,15 @@ void words(uint8_t nWords){
 void coinEnter(uint16_t totalBits){
   tft.fillScreen(UI_BG);
   eyebrow("FLIP COIN");
+  /* Fija, no pegada al número: al pasar de 100 a 99 el número encoge, la
+     etiqueta se corría y dejaba rastro de la posición anterior. Además
+     saltar de sitio mientras cuentas atrás distrae. */
+  tiny("BITS LEFT", 104, 46, UI_DIM, 'L', 1);
   rail("HEADS", "TAILS", false);   //arriba cara, abajo cruz: no hace falta más
 }
 
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy){
-  /* Sin dado a la derecha hay sitio de sobra: la etiqueta va al lado del
-     número en vez de debajo, y todo lo demás sube. */
-  const int endX = bigNumber(totalBits - done, 56);
-  tft.fillRect(endX, 40, UI_RAIL_X - endX - 4, 10, UI_BG);
-  tiny("BITS LEFT", endX + 10, 46, UI_DIM, 'L', 1);
+  bigNumber(totalBits - done, 56);
 
   /* Los últimos 16 lanzamientos: lleno = cara, hueco = cruz */
   const int from = (done > 16) ? done - 16 : 0;
