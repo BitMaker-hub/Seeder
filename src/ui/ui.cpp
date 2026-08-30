@@ -316,7 +316,9 @@ void seedZpub(const String &zpub, uint8_t step, uint8_t total){
   QRCode qr;
   uint8_t buf[qrcode_getBufferSize(version)];
   if(qrcode_initText(&qr, buf, version, 0, zpub.c_str()) < 0) return;
-  const int x0 = UI_W - qr.size*px - 8, y0 = 26;
+  /* Centrado en el hueco que queda bajo la cabecera, no pegado a ella */
+  const int x0 = UI_W - qr.size*px - 8;
+  const int y0 = 22 + (UI_H - 22 - qr.size*px) / 2;
   for(uint8_t y=0; y<qr.size; y++)
     for(uint8_t x=0; x<qr.size; x++)
       tft.fillRect(x0 + x*px, y0 + y*px, px, px,
@@ -354,10 +356,30 @@ void seedQr(const String &data){
 }
 
 void seedExit(void){
-  head("EXIT", 0, 0);
-  bodyLine("Seed is only in RAM.",  36, UI_TEXT);
-  bodyLine("Write it down first.",  36 + BODY_LH, UI_TEXT);
-  bodyLine("Hold OK: wipe & exit",  36 + 3*BODY_LH, UI_ACCENT);
+  tft.fillScreen(UI_BG);
+
+  /* Cabecera distinta a propósito: una regla con la etiqueta incrustada.
+     Esta pantalla no es una más de la semilla, y debe notarse. */
+  tft.drawFastHLine(UI_M, 22, UI_W - 2*UI_M, UI_TRACK);
+  tft.fillRect(UI_M + 6, 16, 46, 13, UI_BG);
+  tiny("EXIT", UI_M + 12, 18, UI_ACCENT, 'L', 2);
+
+  /* Lo único que el usuario tiene que hacer, a doble tamaño */
+  tiny("WRITE IT DOWN", 6, 36, UI_TEXT, 'L', 0, UI_BIG_BODY);
+
+  /* Y por qué: lo que este aparato no ha hecho con tu semilla */
+  tiny("GENERATED OFFLINE",      UI_M, 62, UI_DIM, 'L', 1);
+  tiny("NEVER WRITTEN TO FLASH", UI_M, 74, UI_DIM, 'L', 1);
+  tiny("IT ONLY LIVES IN RAM",   UI_M, 86, UI_DIM, 'L', 1);
+
+  /* El recuadro va abajo a la derecha, a la altura del botón OK físico,
+     y la punta apunta hacia él. */
+  tiny("TO WIPE & LEAVE", UI_M, 112, UI_DIM, 'L', 1);
+  const int bx = 126, by = 100, bw = 106, bh = 30;
+  tft.drawRoundRect(bx,   by,   bw,   bh,   6, UI_ACCENT);
+  tft.drawRoundRect(bx+1, by+1, bw-2, bh-2, 5, UI_ACCENT);
+  tiny("HOLD OK", bx + bw/2, by + 7, UI_ACCENT, 'C', 1, UI_BIG_BODY);
+  tft.fillTriangle(234, 109, 234, 121, 239, 115, UI_ACCENT);
 }
 
 }  // namespace ui
