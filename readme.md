@@ -45,6 +45,10 @@ la última palabra con su checksum.
 - Módulo TTGO T-Display
 - Cable USB-C
 
+Opcionalmente admite una LiPo por el conector JST. La placa no trae interruptor,
+pero **sí se puede apagar por firmware**: cómo hacerlo, y qué esperar del consumo
+en reposo, está en [HARDWARE.md](HARDWARE.md).
+
 ## Instalación
 
 Descarga `seeder-firmware-merged.bin` de la [última
