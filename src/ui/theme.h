@@ -40,6 +40,16 @@
  La fuente 5x7 integrada avanza 6px por carácter: 40 caben por línea.
  UI_BODY_TINY la usa también para el cuerpo de las pantallas de semilla.
  Ponlo a 0 para volver a FreeMono 9pt si en pantalla no se lee bien.     */
+/* Etiqueta de versión del arranque. Sirve para saber qué lleva cada placa
+   cuando tienes varias en la mesa; NO demuestra nada sobre el firmware.
+   Ver SECURITY.md: la integridad se comprueba desde fuera, no desde dentro. */
+#ifndef SEEDER_VERSION
+  #define SEEDER_VERSION "dev"
+#endif
+#ifndef SEEDER_COMMIT
+  #define SEEDER_COMMIT  "local"
+#endif
+
 #define UI_TINY_W     6
 #define UI_TINY_H     8
 #define UI_BODY_TINY  1
