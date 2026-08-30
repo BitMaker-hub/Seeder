@@ -24,7 +24,7 @@ void coinEnter(uint16_t totalBits);
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy);
 
 void diceEnter(uint8_t totalRolls);
-void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, uint8_t last);
+void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, const uint8_t *hist);
 
 void generating(void);
 
