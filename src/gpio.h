@@ -1,10 +1,7 @@
-#include "Lib/images.h"
-#include "Lib/Free_Fonts.h"
-
+#include <Arduino.h>
 
 /**************🍃 TFT functions ********************/
 void Init_TFT(void);
-void clrWorkArea(void);
 
 /**************🍃 BUTTON ********************/
 enum { None, SingleClick, LongClick, ForcedClick };
