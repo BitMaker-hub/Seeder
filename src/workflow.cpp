@@ -297,28 +297,58 @@ void displaySeedQR(void){
   showQRCode(myWallet.mnemonic);
 }
 
-void doShowSeed(void){
-  
-  if(btnMove.click()){
-    menuSeed++; 
-    if(menuSeed > SHOW_EXPORTQR) menuSeed = SHOW_SEED1;
-    if((myWallet.nWords==12)&&(menuSeed == SHOW_SEED2)) menuSeed++;
-    
-    switch(menuSeed){
-      case SHOW_SEED1:      displayMnemonic(0); break;
-      case SHOW_SEED2:      displayMnemonic(12); break;
-      case SHOW_DATA1:      displaySeedData1(); break;
-      case SHOW_DATA2:      displaySeedData2(); break;
-      case SHOW_ENTROPY:    displaySeedEntropy(); break;
-      case SHOW_EXPORTQR:   displaySeedQR(); break;
-    }
+//Last page. Leaving is deliberate on purpose: walking off the seed by accident
+//before writing it down would lose it, so it takes a hold to confirm.
+void displaySeedExit(void){
+
+  tft.fillScreen(TFT_BLACK);
+  displayHeader("Exit", false);
+
+  tft.setCursor (0, 48);
+  tft.setFreeFont(FM9);
+  tft.setTextWrap(true);
+  tft.setTextColor(SEEDER_GREY);
+  tft.println("Write it down first.");
+  tft.println();
+  tft.setTextColor(SEEDER_GREEN);
+  tft.println("Hold OK: main menu");
+}
+
+void drawSeedPage(void){
+  switch(menuSeed){
+    case SHOW_SEED1:      displayMnemonic(0); break;
+    case SHOW_SEED2:      displayMnemonic(12); break;
+    case SHOW_DATA1:      displaySeedData1(); break;
+    case SHOW_DATA2:      displaySeedData2(); break;
+    case SHOW_ENTROPY:    displaySeedEntropy(); break;
+    case SHOW_EXPORTQR:   displaySeedQR(); break;
+    case SHOW_EXIT:       displaySeedExit(); break;
   }
-  if(btnSelect.click()){
+}
+
+//One page forward (+1) or back (-1), wrapping around, and skipping the second
+//half of the mnemonic when there is only one page of words
+void seedPageStep(int dir){
+  do{
+    menuSeed += dir;
+    if(menuSeed > SHOW_EXIT)  menuSeed = SHOW_SEED1;
+    if(menuSeed < SHOW_SEED1) menuSeed = SHOW_EXIT;
+  }while(myWallet.nWords == 12 && menuSeed == SHOW_SEED2);
+  drawSeedPage();
+}
+
+void doShowSeed(void){
+
+  if(btnMove.click()) seedPageStep(+1);
+
+  int sel = btnSelect.click();
+  if(sel == LongClick && menuSeed == SHOW_EXIT){
     tft.fillScreen(TFT_BLACK);
     tft.pushImage(0, 0, menuHeaderWidth, menuHeaderHeight, menu_header);
     myWallet.State = STATE_INITMENU;
     drawInitMenu();
   }
+  else if(sel == SingleClick) seedPageStep(-1);
 }
 
 
