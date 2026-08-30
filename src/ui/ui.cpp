@@ -70,26 +70,34 @@ void bar(int x, int y, int w, int h, float frac){
 }
 
 /* Raíl derecho: MOVE arriba, OK abajo, donde están los botones físicos */
-static void rail(const char *topAct, const char *botAct){
+/* Cuando la acción ya dice qué botón es (cara/cruz) el nombre de la tecla
+   sobra: la posición en el raíl ya señala el botón físico. */
+static void rail(const char *topAct, const char *botAct, bool showKeys){
   tft.drawFastVLine(UI_RAIL_X, 0, UI_H, UI_TRACK);
   caret(UI_RAIL_CX, 12, 9, 6, UI_DIM);
-  tiny("MOVE", UI_RAIL_CX, UI_RAIL_TOP_Y,    UI_ACCENT, 'C', 1);
-  tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+10, UI_DIM,    'C', 0);
-  tiny("OK",   UI_RAIL_CX, UI_RAIL_BOT_Y,    UI_ACCENT, 'C', 1);
-  tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+10, UI_DIM,    'C', 0);
+  if(showKeys){
+    tiny("MOVE", UI_RAIL_CX, UI_RAIL_TOP_Y,    UI_ACCENT, 'C', 1);
+    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+10, UI_DIM,    'C', 0);
+    tiny("OK",   UI_RAIL_CX, UI_RAIL_BOT_Y,    UI_ACCENT, 'C', 1);
+    tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+10, UI_DIM,    'C', 0);
+  }else{
+    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+4, UI_ACCENT, 'C', 1);
+    tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+4, UI_ACCENT, 'C', 1);
+  }
   caret(UI_RAIL_CX, 124, 9, -6, UI_DIM);
 }
 
 static void eyebrow(const char *s){ tiny(s, UI_M, 10, UI_ACCENT, 'L', 1); }
 
 /* Número grande: el único elemento a voz alta de la pantalla */
-static void bigNumber(int n, int baselineY){
+static int bigNumber(int n, int baselineY){
   char buf[8]; snprintf(buf, sizeof(buf), "%d", n);
   tft.fillRect(0, baselineY-36, 100, 40, UI_BG);   //hasta el dado, no más
   tft.setFreeFont(FMB24);
   tft.setTextColor(UI_TEXT);
   tft.setCursor(UI_M, baselineY);
   tft.print(buf);
+  return tft.getCursorX();
 }
 
 /* Cabecera de las pantallas de semilla: etiqueta, paso y una regla fina.
@@ -160,16 +168,18 @@ void menu(bool diceSelected){
 
 /* Tarjeta con el número en una fuente de verdad: los dígitos del bitmap
    original iban en manuscrita y a esta resolución no se leían. */
+/* FMB24 mide 28px por dígito: "12" son 56px y no cabía en la tarjeta.
+   FMB18 son 42px y deja 9px de aire a cada lado. */
 static void wordCard(int x, int y, int w, int h, uint8_t n, uint16_t col, uint16_t sub){
-  tft.drawRoundRect(x, y, w, h, 7, col);
-  tft.drawRoundRect(x+1, y+1, w-2, h-2, 6, col);
+  tft.drawRoundRect(x, y, w, h, 8, col);
+  tft.drawRoundRect(x+1, y+1, w-2, h-2, 7, col);
   char b[4]; snprintf(b, sizeof(b), "%u", n);
-  tft.setFreeFont(FMB24);
+  tft.setFreeFont(FMB18);
   tft.setTextColor(col);
   tft.setTextDatum(BC_DATUM);
-  tft.drawString(b, x + w/2, y + h - 16, GFXFF);
+  tft.drawString(b, x + w/2, y + h - 18, GFXFF);
   tft.setTextDatum(TL_DATUM);
-  tiny("WORDS", x + w/2, y + h - 13, sub, 'C', 1);
+  tiny("WORDS", x + w/2, y + h - 14, sub, 'C', 1);
 }
 
 void words(uint8_t nWords){
@@ -177,8 +187,8 @@ void words(uint8_t nWords){
   tft.fillRect(0, menuHeaderHeight, UI_W, UI_H - menuHeaderHeight, UI_BG);
 
   const bool w12 = (nWords == 12);
-  wordCard(45, 56, 54, 56, 12, w12 ? UI_ACCENT : UI_DIM, w12 ? UI_DIM  : UI_TRACK);
-  wordCard(135,56, 54, 56, 24, w12 ? UI_DIM    : UI_ACCENT, w12 ? UI_TRACK : UI_DIM);
+  wordCard(42,  54, 60, 58, 12, w12 ? UI_ACCENT : UI_DIM,    w12 ? UI_DIM   : UI_TRACK);
+  wordCard(132, 54, 60, 58, 24, w12 ? UI_DIM    : UI_ACCENT, w12 ? UI_TRACK : UI_DIM);
 
   caret(72,  40, 13, 7, w12 ? UI_ACCENT : UI_TRACK);
   caret(162, 40, 13, 7, w12 ? UI_TRACK  : UI_ACCENT);
@@ -188,62 +198,68 @@ void words(uint8_t nWords){
 void coinEnter(uint16_t totalBits){
   tft.fillScreen(UI_BG);
   eyebrow("FLIP COIN");
-  tiny("BITS LEFT", UI_M, 70, UI_DIM, 'L', 1);
-  rail("HEADS", "TAILS");
+  rail("HEADS", "TAILS", false);   //arriba cara, abajo cruz: no hace falta más
 }
 
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy){
-  bigNumber(totalBits - done, 62);
+  /* Sin dado a la derecha hay sitio de sobra: la etiqueta va al lado del
+     número en vez de debajo, y todo lo demás sube. */
+  const int endX = bigNumber(totalBits - done, 56);
+  tft.fillRect(endX, 40, UI_RAIL_X - endX - 4, 10, UI_BG);
+  tiny("BITS LEFT", endX + 10, 46, UI_DIM, 'L', 1);
 
   /* Los últimos 16 lanzamientos: lleno = cara, hueco = cruz */
   const int from = (done > 16) ? done - 16 : 0;
-  tft.fillRect(UI_M, 80, UI_RAIL_X - UI_M - 4, 8, UI_BG);
+  tft.fillRect(UI_M, 72, UI_RAIL_X - UI_M - 4, 8, UI_BG);
   for(int i=0; i<16; i++){
     const int idx = from + i, x = UI_M + i*9;
     if(idx >= done) break;
     const uint8_t bit = (entropy[idx/8] >> (7 - idx%8)) & 1;
-    if(bit) tft.fillRect(x, 80, 8, 8, UI_ACCENT);
-    else    tft.drawRect(x, 80, 8, 8, UI_DIM);
+    if(bit) tft.fillRect(x, 72, 8, 8, UI_ACCENT);
+    else    tft.drawRect(x, 72, 8, 8, UI_DIM);
   }
 
   /* La entropía en hexadecimal, por bytes y alternando el color: es lo que
      el usuario coteja contra su papel mientras lanza. */
-  tft.fillRect(UI_M, 96, UI_RAIL_X - UI_M - 4, 20, UI_BG);
+  tft.fillRect(UI_M, 90, UI_RAIL_X - UI_M - 4, 22, UI_BG);
   const int bytes = done / 8;
   const int first = (bytes > 26) ? bytes - 26 : 0;
   for(int i=first; i<bytes; i++){
     char b[3]; snprintf(b, sizeof(b), "%02X", entropy[i]);
     const int k = i - first;
-    tiny(b, UI_M + (k % 13) * 13, 96 + (k / 13) * 10,
+    tiny(b, UI_M + (k % 13) * 13, 90 + (k / 13) * 11,
          (i % 2) ? UI_TEXT : UI_ACCENT, 'L', 0);
   }
 
-  bar(UI_M, 120, UI_RAIL_X - 2*UI_M, 4, (float)done / totalBits);
+  bar(UI_M, 118, UI_RAIL_X - 2*UI_M, 4, (float)done / totalBits);
 }
 
 /*----------------- captura de dado -----------------*/
 void diceEnter(uint8_t totalRolls){
   tft.fillScreen(UI_BG);
   eyebrow("ROLL DICE");
-  tiny("ROLLS LEFT", UI_M, 70, UI_DIM, 'L', 1);
-  rail("1-6", "ACCEPT");
+  tiny("ROLLS LEFT", UI_M, 64, UI_DIM, 'L', 1);
+  rail("1-6", "ACCEPT", true);
 }
 
-void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, uint8_t last){
-  bigNumber(totalRolls - done, 62);
+/* Las tres últimas tiradas, de más antigua a más reciente. Ver el trío
+   completo es lo que te deja comprobar que entró lo que lanzaste. */
+void diceHistory(const uint8_t *hist){
+  tft.fillRect(UI_M, 78, 100, 26, UI_BG);
+  static const uint16_t shade[3] = { UI_TRACK, UI_DIM, UI_TEXT };
+  for(int i=0; i<3; i++)
+    if(hist[i]) die(UI_M + i*30, 78, 26, hist[i], shade[i]);
+}
+
+void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, const uint8_t *hist){
+  bigNumber(totalRolls - done, 56);
 
   const int size = 64, x = UI_RAIL_X - size - 11;
-  tft.fillRect(x, 22, size, size, UI_BG);
-  die(x, 22, size, value, UI_ACCENT);
+  tft.fillRect(x, 16, size, size, UI_BG);
+  die(x, 16, size, value, UI_ACCENT);
 
-  /* La tirada anterior, apagada: confirma que entró lo que querías */
-  tft.fillRect(UI_M, 86, 80, 30, UI_BG);
-  if(last){
-    die(UI_M, 86, 30, last, UI_DIM);
-    tiny("LAST", UI_M + 36, 98, UI_TRACK, 'L', 1);
-  }
-
-  bar(UI_M, 120, UI_RAIL_X - 2*UI_M, 4, (float)done / totalRolls);
+  diceHistory(hist);
+  bar(UI_M, 118, UI_RAIL_X - 2*UI_M, 4, (float)done / totalRolls);
 }
 
 void generating(void){
@@ -253,24 +269,26 @@ void generating(void){
 
 /*----------------- pantallas de la semilla -----------------*/
 void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint8_t total){
-  head(nWords == 12 ? "MNEMONIC WORDS" : (from ? "MNEMONIC 2/2" : "MNEMONIC 1/2"), step, total);
+  head(nWords == 12 ? "MNEMONIC WORDS" : (from ? "MNEMONIC 13-24" : "MNEMONIC 1-12"), step, total);
 
-  /* Doce palabras por página, cortando por espacios, nunca por la mitad */
-  int idx = 0, shown = 0, y = 34, used = 0;
-  String line = "";
-  int start = 0;
+  /* Rejilla fija de 6 filas x 2 columnas. En línea corrida, doce palabras
+     largas ocupaban seis líneas y la última se salía de la pantalla; así
+     caben siempre, sin depender de lo que midan. El número delante evita
+     tener que contarlas al copiarlas. */
+  static const int COL[2] = { 6, 122 };
+  int idx = 0, shown = 0, start = 0;
   while(start < (int)mn.length() && shown < 12){
-    int sp = mn.indexOf(' ', start);
-    String w = (sp < 0) ? mn.substring(start) : mn.substring(start, sp);
+    const int sp = mn.indexOf(' ', start);
+    const String w = (sp < 0) ? mn.substring(start) : mn.substring(start, sp);
     start = (sp < 0) ? mn.length() : sp + 1;
-    if(idx++ < from){ continue; }
-    if(used + (int)w.length() + 1 > UI_BIG_CPL){
-      bigLine(line, y, UI_TEXT); y += UI_BIG_LH; line = ""; used = 0;
-    }
-    line += w; line += ' '; used += w.length() + 1;
+    if(idx++ < from) continue;
+
+    const int x = COL[shown / 6], y = 30 + (shown % 6) * 17;
+    char num[4]; snprintf(num, sizeof(num), "%d", from + shown + 1);
+    tiny(num, x + 14, y + 4, UI_DIM,  'R', 0);
+    tiny(w,   x + 18, y,     UI_TEXT, 'L', 0, UI_BIG_BODY);
     shown++;
   }
-  if(line.length()) bigLine(line, y, UI_TEXT);
 }
 
 void seedAddress(const String &addr, uint8_t step, uint8_t total){
@@ -285,19 +303,35 @@ void seedAddress(const String &addr, uint8_t step, uint8_t total){
 
 void seedZpub(const String &zpub, uint8_t step, uint8_t total){
   head("ACCOUNT ZPUB", step, total);
-  bodyWrap(zpub, 34, UI_TEXT);
+
+  /* Un zpub son 111 caracteres de base58: no se copia a mano, se escanea
+     para montar el monedero de sólo lectura. Al lado, principio y final
+     para poder identificarlo de un vistazo. */
+  tiny(zpub.substring(0, 8),                  UI_M, 32, UI_TEXT, 'L', 0, UI_BIG_BODY);
+  tiny("..." + zpub.substring(zpub.length()-5), UI_M, 54, UI_TEXT, 'L', 0, UI_BIG_BODY);
+  tiny("SCAN TO IMPORT",                      UI_M, 84, UI_DIM,  'L', 1);
+  tiny("WATCH-ONLY",                          UI_M, 96, UI_DIM,  'L', 1);
+
+  const int version = 6, px = 2;
+  QRCode qr;
+  uint8_t buf[qrcode_getBufferSize(version)];
+  if(qrcode_initText(&qr, buf, version, 0, zpub.c_str()) < 0) return;
+  const int x0 = UI_W - qr.size*px - 8, y0 = 26;
+  for(uint8_t y=0; y<qr.size; y++)
+    for(uint8_t x=0; x<qr.size; x++)
+      tft.fillRect(x0 + x*px, y0 + y*px, px, px,
+                   qrcode_getModule(&qr, x, y) ? UI_QR_LIGHT : UI_BG);
 }
 
 void seedEntropy(const String &hex, uint8_t step, uint8_t total){
   head("ENTROPY (HEX)", step, total);
-  /* Por bytes y alternando color: así se canta en voz alta sin perderse */
-  int y = 34;
-  for(int i=0; i*2 < (int)hex.length(); i++){
-    const int k = i % 17;
-    if(i && k == 0) y += 12;
-    tiny(hex.substring(i*2, i*2+2), UI_M + k*13, y, (i%2) ? UI_TEXT : UI_ACCENT, 'L', 0);
-  }
-  tiny("CHECK IT OFFLINE", UI_M, y + 24, UI_DIM, 'L', 1);
+  /* A tamaño 1 y todo seguido no había quien lo leyera. Ocho bytes por fila,
+     a doble tamaño y alternando el color: se puede cantar en voz alta. */
+  const int bytes = hex.length() / 2;
+  for(int i=0; i<bytes; i++)
+    tiny(hex.substring(i*2, i*2+2), 8 + (i % 8) * 29, 32 + (i / 8) * 26,
+         (i % 2) ? UI_TEXT : UI_ACCENT, 'L', 0, UI_BIG_BODY);
+  if(bytes <= 16) tiny("CHECK IT OFFLINE", UI_M, 98, UI_DIM, 'L', 1);
 }
 
 void seedQr(const String &data){

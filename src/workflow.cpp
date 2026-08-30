@@ -14,7 +14,7 @@ int menuSeed = SHOW_SEED1;
 uint8_t entropy[32];               //Entropía cruda que aporta el usuario
 char diceRolls[DICE_MAX_ROLLS+1];  //Dígitos ASCII de las tiradas
 uint8_t diceValue = 1;             //Valor que se está marcando ahora
-uint8_t lastRoll  = 0;             //Última tirada aceptada
+uint8_t rollHist[3] = {0,0,0};     //Tres últimas tiradas, la más reciente al final
 
 /**************🍃 HELPERS *****************/
 uint8_t entropyBytes(void){ return myWallet.nWords * 4 / 3; }
@@ -42,7 +42,7 @@ void wipeSeed(void){
   memset(diceRolls, 0, sizeof(diceRolls));
   myWallet.nBCoinEntropy = 0;
   myWallet.nRolls = 0;
-  diceValue = 1; lastRoll = 0;
+  diceValue = 1; memset(rollHist, 0, sizeof(rollHist));
 }
 
 //Siempre antes de capturar: entropy[] es global y si no arrastraría bits de
@@ -108,10 +108,11 @@ void doMenuWords(void){
     }else{
       myWallet.State  = STATE_DICESEED;
       myWallet.nRolls = 0;
-      diceValue = 1; lastRoll = 0;
+      diceValue = 1;
       memset(diceRolls, 0, sizeof(diceRolls));
+      memset(rollHist,  0, sizeof(rollHist));
       ui::diceEnter(diceRollsNeeded());
-      ui::diceUpdate(0, diceRollsNeeded(), diceValue, 0);
+      ui::diceUpdate(0, diceRollsNeeded(), diceValue, rollHist);
     }
   }
 }
@@ -140,12 +141,12 @@ void doDiceSeed(void){
 
   if(btnMove.click()){
     diceValue = (diceValue % 6) + 1;   //1..6, da la vuelta
-    ui::diceUpdate(myWallet.nRolls, total, diceValue, lastRoll);
+    ui::diceUpdate(myWallet.nRolls, total, diceValue, rollHist);
   }
 
   if(btnSelect.click()){
     diceRolls[myWallet.nRolls++] = '0' + diceValue;
-    lastRoll  = diceValue;
+    rollHist[0] = rollHist[1]; rollHist[1] = rollHist[2]; rollHist[2] = diceValue;
     diceValue = 1;
 
     if(myWallet.nRolls >= total){
@@ -153,7 +154,7 @@ void doDiceSeed(void){
       generateSeed();
       return;
     }
-    ui::diceUpdate(myWallet.nRolls, total, diceValue, lastRoll);
+    ui::diceUpdate(myWallet.nRolls, total, diceValue, rollHist);
   }
 }
 
