@@ -65,6 +65,18 @@ pio run -e seeder
 Las librerías (`uBitcoin`, `TFT_eSPI`) van fijadas dentro de `lib/` a propósito:
 un generador de semillas debe compilar igual hoy que dentro de cinco años.
 
+## Verificación
+
+No te fíes de la SEEDER: compruébala. Con la entropía en hexadecimal que te enseña
+en pantalla puedes rehacer las cuentas en cualquier herramienta BIP39 offline, y con
+esptool puedes comprobar que el chip contiene el binario publicado:
+
+```bash
+esptool.py --port COM3 --no-stub verify_flash 0x0 seeder-firmware-merged.bin
+```
+
+El modelo de amenazas completo, qué protege y qué no, está en [SECURITY.md](SECURITY.md).
+
 > La semilla nunca sale del dispositivo ni se escribe en flash: sólo vive en RAM y
 > desaparece al desconectarlo. El firmware tampoco imprime nada por el puerto serie.
 
