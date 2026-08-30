@@ -8,8 +8,35 @@ on:
   workflow_dispatch:
 
 jobs:
-  firmware:
+  audit:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # La interfaz se diseñó sobre 240x135 y se escala con SX()/SY(), pero las
+      # fuentes no escalan. Esto verifica que nada se sale en ninguna placa.
+      - name: Auditar la interfaz en las dos pantallas
+        run: python scripts/audit_ui.py
+
+  firmware:
+    needs: audit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # En ESP32 el bootloader va a 0x1000; en ESP32-S3 va a 0x0.
+          # Copiar el offset de una a la otra produce un binario que no arranca.
+          - env: tdisplay
+            chip: esp32
+            boot_offset: "0x1000"
+            flash_size: "4MB"
+          - env: tdisplay-s3
+            chip: esp32s3
+            boot_offset: "0x0"
+            flash_size: "16MB"
     steps:
       - uses: actions/checkout@v4
 
@@ -23,39 +50,42 @@ jobs:
           path: |
             ~/.platformio
             ~/.cache/pip
-          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          key: pio-${{ runner.os }}-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
 
       - name: Install toolchain
         run: pip install --upgrade platformio esptool==4.8.1
 
       - name: Build
-        run: pio run -e seeder
+        run: pio run -e ${{ matrix.env }}
 
-      # esptool-js wants one file at offset 0. Merging the four images here
-      # means the flashing tutorial is a single drag-and-drop.
+      # esptool-js quiere un solo fichero al offset 0. Fundir aquí las cuatro
+      # imágenes deja el tutorial de flasheo en un arrastrar y soltar.
       - name: Merge into a single flashable image
         run: |
           set -eu
-          OUT=.pio/build/seeder
+          OUT=.pio/build/${{ matrix.env }}
           BOOT_APP0="$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+          NAME=seeder-${{ matrix.env }}
           mkdir -p dist
-          python -m esptool --chip esp32 merge_bin \
-            -o dist/seeder-firmware-merged.bin \
-            --flash_mode dio --flash_freq 80m --flash_size 4MB \
-            0x1000  "$OUT/bootloader.bin" \
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
+            -o dist/$NAME-merged.bin \
+            --flash_mode dio --flash_freq 80m --flash_size ${{ matrix.flash_size }} \
+            ${{ matrix.boot_offset }} "$OUT/bootloader.bin" \
             0x8000  "$OUT/partitions.bin" \
             0xe000  "$BOOT_APP0" \
             0x10000 "$OUT/firmware.bin"
-          cp "$OUT/firmware.bin" "$OUT/bootloader.bin" "$OUT/partitions.bin" "$BOOT_APP0" dist/
-          sha256sum dist/* | tee dist/SHA256SUMS
+          cp "$OUT/firmware.bin"   dist/$NAME-firmware.bin
+          cp "$OUT/bootloader.bin" dist/$NAME-bootloader.bin
+          cp "$OUT/partitions.bin" dist/$NAME-partitions.bin
+          sha256sum dist/* | tee dist/SHA256SUMS-${{ matrix.env }}
 
-      # A seed generator is only as trustworthy as the audit trail of its binary.
+      # Un generador de semillas vale lo que valga el rastro de su binario.
       - name: Show what went into the image
-        run: cat dist/SHA256SUMS
+        run: cat dist/SHA256SUMS-${{ matrix.env }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: seeder-firmware
+          name: seeder-${{ matrix.env }}
           path: dist/
 
       - name: Attach to release

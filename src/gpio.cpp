@@ -14,6 +14,15 @@ extern sButton btnSelect;
 
 void Init_TFT(void){
 
+#ifdef PIN_POWER_ON
+  /* La T-Display-S3 alimenta sus periféricos desde este pin. Si no se pone
+     alto ANTES de arrancar el panel, la pantalla no enciende y la placa
+     parece muerta: es el fallo clásico de esa placa. */
+  pinMode(PIN_POWER_ON, OUTPUT);
+  digitalWrite(PIN_POWER_ON, HIGH);
+  delay(20);
+#endif
+
   tft.init();
   tft.setRotation(1);
   tft.setSwapBytes(true);   // orden de bytes al volcar imágenes

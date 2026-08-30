@@ -1,10 +1,15 @@
 #pragma once
+#include "../boards/board.h"
 
 /**********************************
  🍃 TEMA
  Todo lo que define el aspecto vive aquí. Cambiar de estética, o de placa,
  es cambiar este fichero: ni la máquina de estados ni la lógica de entropía
  saben nada de colores ni de coordenadas.
+
+ Las medidas se derivan del tamaño de la placa con SX()/SY(), de modo que
+ la misma composición sirve para 240x135 y para 320x170 sin mantener dos
+ layouts en paralelo.
 **********************************/
 
 /*** Colores (RGB565) *************************************************
@@ -18,31 +23,32 @@
 #define UI_QR_LIGHT   0xFFFF
 
 /*** Métricas *********************************************************/
-#define UI_W          240
-#define UI_H          135
-#define UI_M          10      // margen izquierdo del contenido
-#define UI_RAIL_X     183     // el raíl de botones empieza aquí
+#define UI_M          SX(10)     // margen izquierdo del contenido
+#define UI_RAIL_X     SX(183)    // el raíl ancho de las capturas
 #define UI_RAIL_CX    ((UI_RAIL_X + UI_W) / 2)
 
-/* Los dos botones del T-Display están en el borde derecho, uno arriba y
-   otro abajo, así que la pista de cada uno se pinta a su altura.        */
+/* Los dos botones están en el borde derecho, uno arriba y otro abajo, así
+   que la pista de cada uno se pinta a su altura. */
+#define UI_RAIL_TOP_Y   SY(22)   // MOVE
+#define UI_RAIL_BOT_Y   SY(96)   // OK
+
 /* El menú lleva un raíl más estrecho y sólo con símbolos: allí los dos
    botones se interpretan solos y la carcasa ya los rotula. Que cambie de
    anchura entre capas es, además, otra señal de que no estás en el mismo
    sitio - menú, captura y datos son tres interfaces, no una. */
-#define UI_MRAIL_X    214
-#define UI_MRAIL_CX   227
+#define UI_MRAIL_X    SX(214)
+#define UI_MRAIL_CX   ((UI_MRAIL_X + UI_W) / 2)
 
-#define UI_RAIL_TOP_Y   22    // MOVE
-#define UI_RAIL_BOT_Y   96    // OK
+#define UI_HEAD_H     SY(36)     // franja verde del menú
 
 /*** Tipografía *******************************************************
- La fuente 5x7 integrada avanza 6px por carácter: 40 caben por línea.
- UI_BODY_TINY la usa también para el cuerpo de las pantallas de semilla.
- Ponlo a 0 para volver a FreeMono 9pt si en pantalla no se lee bien.     */
-/* Etiqueta de versión del arranque. Sirve para saber qué lleva cada placa
-   cuando tienes varias en la mesa; NO demuestra nada sobre el firmware.
-   Ver SECURITY.md: la integridad se comprueba desde fuera, no desde dentro. */
+ Las fuentes miden lo que miden en píxeles: NO se escalan con la placa.
+ En la S3 los píxeles son mayores, así que el mismo texto se ve más grande
+ y además sobra ancho, de modo que caben más caracteres por línea.
+
+ Etiqueta de versión del arranque: sirve para saber qué lleva cada placa
+ cuando tienes varias en la mesa; NO demuestra nada sobre el firmware.
+ Ver SECURITY.md: la integridad se comprueba desde fuera, no desde dentro. */
 #ifndef SEEDER_VERSION
   #define SEEDER_VERSION "dev"
 #endif
@@ -56,12 +62,15 @@
 
 /* La misma fuente a doble tamaño para lo que hay que copiar a mano: las
    palabras y la dirección. Un solo tipo de letra, dos tamaños, que es
-   jerarquía y no mezcla. 12px de avance -> 18 caracteres por línea.        */
+   jerarquía y no mezcla. */
 #define UI_BIG_BODY   2
+#define UI_BIG_LH     SY(20)
+
+/* Caracteres por línea, calculados del ancho real: así la placa grande
+   aprovecha el sitio de más en vez de dejarlo en blanco. */
 #define UI_BIG_CPL    ((UI_W - 2*UI_M) / (UI_TINY_W * UI_BIG_BODY))
-#define UI_BIG_LH     20
+#define UI_TINY_CPL   ((UI_W - 2*UI_M) / UI_TINY_W)
 
 /*** Ancho de línea de las fuentes monoespaciadas **********************/
 #define UI_MONO_W     11      // FreeMono9pt7b avanza 11px
-#define UI_MONO_CPL   (UI_W / UI_MONO_W)          // 21
-#define UI_TINY_CPL   ((UI_W - 2*UI_M) / UI_TINY_W)  // 36 con márgenes
+#define UI_MONO_CPL   (UI_W / UI_MONO_W)

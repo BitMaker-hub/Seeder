@@ -29,21 +29,9 @@ enum { coinEntropy, diceEntropy };
 // The seed is NEVER written to flash: it only ever lives in RAM and a power
 // cycle wipes it. That is deliberate - do not add persistence here.
 
-/***************🍃 BUTTONS ***************/
-#define PIN_MOVE          35
-#define PIN_SELECT        0
-
-/***************🍃 SCREEN ***************/
-#define D_ANCHO           240     // screen width
-#define D_ALTO            128     // screen height
-#define D2_ANCHO          125     // half screen width
-#define D2_ALTO           64     // half screen height
-#define HEADER_HEIGHT     37
-#define CHAR_W            11      // FreeMono9pt7b advances 11px per glyph
-#define CHARS_PER_LINE    (D_ANCHO / CHAR_W)   // 21, not 22: the 22nd wraps
-#define SEEDER_GREEN      0x86F3  //Green color used in seeder
-#define SEEDER_GREY       0xA514
-#define SEEDER_BLUE       0x0619
+/***************🍃 PLACA ***************/
+/* Pines y dimensiones vienen de src/boards/, no de aquí */
+#include "boards/board.h"
 
 /********** 🍃 STATES ************************/
 #define STATE_INITMENU    1
