@@ -39,6 +39,8 @@ enum { coinEntropy, diceEntropy };
 #define D2_ANCHO          125     // half screen width
 #define D2_ALTO           64     // half screen height
 #define HEADER_HEIGHT     37
+#define CHAR_W            11      // FreeMono9pt7b advances 11px per glyph
+#define CHARS_PER_LINE    (D_ANCHO / CHAR_W)   // 21, not 22: the 22nd wraps
 #define SEEDER_GREEN      0x86F3  //Green color used in seeder
 #define SEEDER_GREY       0xA514
 #define SEEDER_BLUE       0x0619
