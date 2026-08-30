@@ -7,13 +7,15 @@ void Init_TFT(void);
 void clrWorkArea(void);
 
 /**************🍃 BUTTON ********************/
-enum { None, SingleClick, DoubleClick, LongClick, ForcedClick };
+enum { None, SingleClick, LongClick, ForcedClick };
 
 class sButton
    {  private:
          byte antState;           //Button previous pin state
          byte pin;                //Button physical pin number
-         unsigned long msecLst;   //Button last time was pressed
+         bool longFired;          //LongClick already reported for this press
+         unsigned long msecLst;   //When the current press started
+         unsigned long msecEdge;  //Last accepted edge, for debouncing
  
       public:
          uint8_t clickState;      //Button click [None, SingleClick, DoubleClick, LongClick]
