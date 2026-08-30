@@ -42,8 +42,14 @@ la última palabra con su checksum.
 
 ## Requisitos
 
-- Módulo TTGO T-Display
-- Cable USB-C
+Cualquiera de las dos placas:
+
+| Placa | Pantalla | Binario |
+|---|---|---|
+| LilyGO TTGO T-Display (ESP32) | 240x135 | `seeder-tdisplay-merged.bin` |
+| LilyGO T-Display-S3 (ESP32-S3) | 320x170 | `seeder-tdisplay-s3-merged.bin` |
+
+Y un cable USB-C.
 
 Opcionalmente admite una LiPo por el conector JST. La placa no trae interruptor,
 pero **sí se puede apagar por firmware**: cómo hacerlo, y qué esperar del consumo
