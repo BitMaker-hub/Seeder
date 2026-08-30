@@ -51,14 +51,43 @@ en reposo, está en [HARDWARE.md](HARDWARE.md).
 
 ## Instalación
 
-Descarga `seeder-firmware-merged.bin` de la [última
-release](https://github.com/BitMaker-hub/Seeder/releases) y flaséalo con
-[esptool-js](https://espressif.github.io/esptool-js/) en el offset **0x0**. Es un
-único archivo, no hace falta nada más.
+Todo sale de la [última release](https://github.com/BitMaker-hub/Seeder/releases).
+Hay dos caminos: uno cómodo y otro comprobable. Elige según lo que te juegues.
 
-Cada release lleva su `SHA256SUMS` y se construye desde este repositorio con
-GitHub Actions, así que puedes comprobar que el binario que flasheas sale del
-código que estás leyendo.
+### Vía rápida — desde el navegador
+
+Descarga `seeder-firmware-merged.bin` y flaséalo con
+[esptool-js](https://espressif.github.io/esptool-js/) en el offset **0x0**.
+Un solo archivo, nada que instalar.
+
+> Cómodo, pero estás confiando en que la página te sirvió el binario correcto.
+> Para una semilla de verdad, haz también la comprobación de abajo.
+
+### Vía manual — desde el terminal, y verificable
+
+Descarga la release entera, incluido el `SHA256SUMS`, y comprueba que lo que te
+has bajado es lo que la CI publicó:
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+Flashea:
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800   write_flash -z 0x0 seeder-firmware-merged.bin
+```
+
+Y comprueba que el chip contiene de verdad ese binario:
+
+```bash
+esptool.py --port /dev/ttyUSB0 --no-stub verify_flash 0x0 seeder-firmware-merged.bin
+```
+
+En Windows el puerto es `COM3` o similar. Ese último paso es el que importa y
+está explicado en [SECURITY.md](SECURITY.md): con `--no-stub` la aplicación de la
+SEEDER ni se ejecuta, responde el bootloader de la ROM del chip, así que un
+firmware manipulado no puede mentir sobre lo que hay en la flash.
 
 ## Compilar desde fuente
 
@@ -71,15 +100,14 @@ un generador de semillas debe compilar igual hoy que dentro de cinco años.
 
 ## Verificación
 
-No te fíes de la SEEDER: compruébala. Con la entropía en hexadecimal que te enseña
-en pantalla puedes rehacer las cuentas en cualquier herramienta BIP39 offline, y con
-esptool puedes comprobar que el chip contiene el binario publicado:
+No te fíes de la SEEDER: compruébala. La pantalla `Entropy (hex)` te enseña los
+bytes de los que salieron tus palabras, y con ese hex y cualquier herramienta BIP39
+**offline** puedes rehacer las cuentas. Si no coinciden, no uses el aparato.
 
-```bash
-esptool.py --port COM3 --no-stub verify_flash 0x0 seeder-firmware-merged.bin
-```
+Hazlo con **tu propia entropía**, no con los vectores publicados: un firmware
+malicioso reconoce las tiradas de prueba y se porta bien sólo ahí.
 
-El modelo de amenazas completo, qué protege y qué no, está en [SECURITY.md](SECURITY.md).
+El modelo de amenazas completo, y qué no cubre, está en [SECURITY.md](SECURITY.md).
 
 > La semilla nunca sale del dispositivo ni se escribe en flash: sólo vive en RAM y
 > desaparece al desconectarlo. El firmware tampoco imprime nada por el puerto serie.
