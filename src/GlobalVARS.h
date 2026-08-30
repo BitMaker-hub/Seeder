@@ -58,6 +58,7 @@ enum { coinEntropy, diceEntropy };
 #define SHOW_DATA2        4
 #define SHOW_ENTROPY      5
 #define SHOW_EXPORTQR     6
+#define SHOW_EXIT         7
 /********** 🍃 DICE ************************/
 // Same scheme as Coldcard: the ASCII digits of the rolls are hashed with
 // SHA-256. A d6 carries log2(6) = 2.585 bits, so 50 rolls = 129.2 bits and
