@@ -57,53 +57,38 @@ void sButton::forceClick(void){ clickState = ForcedClick;} //Generates one click
 
 void sButton::check(void)
 {
-    const  unsigned long ButTimeout    = 250;
-    const  unsigned long ButLongClick  = 5000;
-           unsigned long msec = millis();
+    const unsigned long ButDebounce  = 25;
+    const unsigned long ButLongClick = 1200;
+          unsigned long msec = millis();
 
-    byte but = digitalRead (pin);
-    if (antState != but)  {
-        antState = but;
-        delay (10);           // **** debounce
-
-        if (LOW == but)  {   // press
-            if (msecLst)  { // 2nd press
-                msecLst = 0; 
-                clickState = DoubleClick;
-                DBGLN("DoubleClick");
-                return;
-            }
-            else
-                msecLst = 0 == msec ? 1 : msec;
-        }
-    }
-
-    int elapsed = msec - msecLst;
-    if (msecLst && (elapsed > ButTimeout) && (elapsed < ButLongClick))  {
-        if(but != LOW) {
-          msecLst = 0;
-          clickState = SingleClick;
-          DBGLN("SingleClick");
-          return;
-        }
-    }
-
-    //LongClick 
-    if(msecLst && (but == antState) && (but == LOW)) {
-        if(elapsed > ButLongClick) {
-          msecLst = 0; 
-          clickState = LongClick;
-          DBGLN("LongClick");
-          return;
-        }
-    }
-
-    //ForcedClick
-    if(clickState == ForcedClick){ 
-      clickState = SingleClick;
-      return;
-    }
+    if(clickState == ForcedClick){ clickState = SingleClick; return; }
     clickState = None;
+
+    byte but = digitalRead(pin);
+
+    if(but != antState){
+        if(msec - msecEdge < ButDebounce) return;   // bounce, ignore the edge
+        msecEdge = msec;
+        antState = but;
+
+        if(but == LOW){                             // pressed
+            msecLst = msec ? msec : 1;
+            longFired = false;
+        }else{                                      // released
+            //Click reported on release, so holding the button never turns two
+            //presses into one and no input is ever swallowed
+            if(msecLst && !longFired){ clickState = SingleClick; DBGLN("SingleClick"); }
+            msecLst = 0;
+        }
+        return;
+    }
+
+    //Still held: LongClick fires once and suppresses the click on release
+    if(but == LOW && msecLst && !longFired && (msec - msecLst) > ButLongClick){
+        longFired = true;
+        clickState = LongClick;
+        DBGLN("LongClick");
+    }
 }
 
 
