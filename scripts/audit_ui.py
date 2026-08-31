@@ -120,9 +120,19 @@ def audit(board, sym):
          sx(122), sx(122) + sx(18) + 8 * 12, sy(30), sy(30) + 5 * sy(17) + 16),
         ("entropía, 8 bytes por fila, 4 filas",
          sx(8), sx(8) + 7 * sx(29) + 24, sy(32), sy(32) + 3 * sy(26) + 16),
-        ("QR del mnemónico (61 módulos a 2px)",
-         sym["UI_W"] - 122 - sx(6), sym["UI_W"] - sx(6),
-         (sym["UI_H"] - 122) // 2, (sym["UI_H"] - 122) // 2 + 122),
+    ]
+    # El QR elige versión según la longitud y el mayor píxel por módulo que
+    # quepa, así que hay que comprobar los dos casos por separado.
+    for words, mods in (("12 palabras", 41), ("24 palabras", 49)):
+        px = 1
+        while (px + 1) * mods <= sym["UI_H"] - 12 and px < 6:
+            px += 1
+        qw = mods * px
+        quiet = max(3 * px, 6)
+        blocks.append((f"QR, {words} ({mods} módulos a {px}px)",
+                       sym["UI_W"] - qw - quiet, sym["UI_W"] - quiet,
+                       (sym["UI_H"] - qw) // 2, (sym["UI_H"] - qw) // 2 + qw))
+    blocks += [
         ("recuadro HOLD OK",
          sym["bx"], sym["bx"] + sym["bw"], sym["by"], sym["by"] + sym["bh"]),
     ]

@@ -388,11 +388,31 @@ void seedEntropy(const String &hex, uint8_t step, uint8_t total){
   if(bytes <= 16) tiny("CHECK IT OFFLINE", UI_M, SY(98), UI_DIM, 'L', 1);
 }
 
+/* Versión mínima que aguanta el texto, en modo byte con corrección L.
+   La v1 fijaba la 11 (61 módulos) para todo, y no hace falta: 12 palabras son
+   67 caracteres y 24 son 155. Menos módulos significa módulos más grandes,
+   que es lo único que decide si una cámara lo engancha. */
+static uint8_t qrVersionFor(size_t len){
+  if(len <= 134) return 6;    // 41 módulos
+  if(len <= 154) return 7;    // 45
+  if(len <= 192) return 8;    // 49
+  if(len <= 230) return 9;    // 53
+  return 11;                  // 61, el techo de siempre
+}
+
 void seedQr(const String &data){
-  const int version = 11, px = 2;
+  const uint8_t version = qrVersionFor(data.length());
   QRCode qrcode;
-  uint8_t buf[qrcode_getBufferSize(version)];
-  qrcode_initText(&qrcode, buf, version, 0, data.c_str());
+  uint8_t buf[qrcode_getBufferSize(11)];        // dimensionado al peor caso
+  if(qrcode_initText(&qrcode, buf, version, 0, data.c_str()) < 0) return;
+
+  /* El mayor píxel por módulo que quepa con 6px de margen arriba y abajo.
+     A la hora de escanear manda el tamaño del módulo, no el del código
+     entero: 41 módulos a 3px se leen mucho mejor que 61 a 2px, aunque
+     midan lo mismo. La v1 dejaba 2px de margen, que es medio módulo. */
+  int px = 1;
+  while((px+1) * qrcode.size <= UI_H - 12 && px < 6) px++;
+  const int quiet = (3*px > 6) ? 3*px : 6;   // 3 módulos por la derecha
 
   tft.fillScreen(UI_BG);
   tiny("EXPORT", UI_M, SY(10), UI_ACCENT, 'L', 1);
@@ -400,11 +420,8 @@ void seedQr(const String &data){
   tiny("OFFLINE WALLET",UI_M, SY(44), UI_DIM, 'L', 0);
   tiny("NEVER A PHONE", UI_M, SY(62), UI_ACCENT, 'L', 0);
 
-  /* Posición calculada en vez del desplazamiento fijo de la v1, que dejaba
-     el código a 2px del borde derecho: un QR necesita zona de silencio para
-     que una cámara lo enganche. */
   const int qw = qrcode.size * px;
-  const int qx = UI_W - qw - SX(6);
+  const int qx = UI_W - qw - quiet;
   const int qy = (UI_H - qw) / 2;
   for(uint8_t y=0; y<qrcode.size; y++)
     for(uint8_t x=0; x<qrcode.size; x++)
