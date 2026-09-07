@@ -314,6 +314,40 @@ void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, const uint8_t *
   bar(UI_M, SY(118), UI_RAIL_X - 2*UI_M, SY(4), (float)done / totalRolls);
 }
 
+/*----------------- mantener OK para empezar de nuevo -----------------*/
+/* Ocupa la pantalla entera, que es deliberado: lo que se va a perder tambien
+   lo es. El rail se reescribe en vez de dejarlo como estaba porque rotulaba
+   las acciones normales de los dos botones -HEADS/TAILS, 1-6/ACCEPT- justo
+   mientras el aviso dice que soltar cancela, y ademas MOVE aqui ya no hace
+   nada. Durante el mantenido el rail ensena solo lo que hay: un boton
+   pulsado, el de abajo. */
+static int holdFilled = 0;          //ancho ya pintado de la barra
+
+void holdEnter(void){
+  tft.fillRect(0, 0, UI_RAIL_X, UI_H, UI_BG);
+  tiny("START OVER",        UI_RAIL_X/2, SY(38), UI_TEXT, 'C', 1, UI_BIG_BODY);
+  tft.fillRect(UI_M, SY(68), UI_RAIL_X - 2*UI_M, SY(10), UI_TRACK);
+  tiny("RELEASE TO CANCEL", UI_RAIL_X/2, SY(92), UI_DIM,  'C', 1);
+
+  tft.fillRect(UI_RAIL_X+1, 0, UI_W - UI_RAIL_X - 1, UI_H, UI_BG);
+  tiny("OK",   UI_RAIL_CX, SY(96),  UI_ACCENT, 'C', 1);
+  tiny("HOLD", UI_RAIL_CX, SY(106), UI_TEXT,   'C', 0);
+  caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);   //senala el boton fisico
+  holdFilled = 0;
+}
+
+/* Solo se pinta lo que crece: repintar la barra entera a cada vuelta del
+   bucle, cien veces por segundo, se ve como un parpadeo. */
+void holdUpdate(float frac){
+  if(frac < 0) frac = 0;
+  if(frac > 1) frac = 1;
+  const int w  = UI_RAIL_X - 2*UI_M;
+  const int px = (int)(w * frac + 0.5f);
+  if(px <= holdFilled) return;
+  tft.fillRect(UI_M + holdFilled, SY(68), px - holdFilled, SY(10), UI_ACCENT);
+  holdFilled = px;
+}
+
 void generating(void){
   tft.fillScreen(UI_BG);
   tiny("GENERATING SEED", UI_W/2, UI_H/2 - SY(4), UI_ACCENT, 'C', 1);

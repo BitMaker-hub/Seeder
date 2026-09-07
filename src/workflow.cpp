@@ -68,6 +68,54 @@ static void drawSeedPage(void){
   }
 }
 
+/* Durante la captura no habia forma de volver atras salvo desconectar, y a
+   mitad de 99 tiradas eso es una trampa. Mantener OK vuelve al menu.
+
+   Se arma con LongClick y no con un contador propio porque ese evento es el
+   que ya anula el click de la suelta: soltar a mitad del aviso no puede
+   colar un bit ni una tirada que el usuario acababa de descartar. */
+static bool holdArmed = false;
+
+static void redrawCapture(void){
+  if(myWallet.State == STATE_COINSEED){
+    const uint16_t bits = entropyBytes() * 8;
+    ui::coinEnter(bits);
+    ui::coinUpdate(myWallet.nBCoinEntropy, bits, entropy);
+  }else{
+    const uint8_t total = diceRollsNeeded();
+    ui::diceEnter(total);
+    ui::diceUpdate(myWallet.nRolls, total, diceValue, rollHist);
+  }
+}
+
+//true = el ciclo ya esta servido; mientras el aviso esta puesto no responde
+//nada mas de la pantalla, tampoco MOVE
+static bool holdToStartOver(void){
+  const int sel = btnSelect.click();
+
+  if(sel == HoldClick){
+    holdArmed = false;
+    wipeSeed();                       //lo capturado a medias no sobrevive
+    myWallet.State = STATE_INITMENU;
+    drawInitMenu();
+    return true;
+  }
+
+  if(sel == LongClick){ holdArmed = true; ui::holdEnter(); }
+  if(!holdArmed) return false;
+
+  const unsigned long held = btnSelect.heldMs();
+  if(!held){                          //solto antes de tiempo: sigue donde estaba
+    holdArmed = false;
+    redrawCapture();
+    return true;
+  }
+  ui::holdUpdate(held > BTN_LONG_MS
+                   ? (float)(held - BTN_LONG_MS) / (BTN_HOLD_MS - BTN_LONG_MS)
+                   : 0.0f);
+  return true;
+}
+
 static void generateSeed(void){
   ui::generating();
   createSeed(myWallet.nWords, entropy);
@@ -81,12 +129,15 @@ static void generateSeed(void){
  ***********************************************/
 
 /**************🍃 INITIAL MENU *****************/
+/* Todos los estados comparan el tipo de click y nunca su verdad: hay mas de
+   un evento por pulsacion y un mantenido no puede colarse donde se esperaba
+   un toque. */
 void doInitMenu(void){
-  if(btnMove.click()){
+  if(btnMove.click() == SingleClick){
     myWallet.entropySrc = (myWallet.entropySrc == coinEntropy) ? diceEntropy : coinEntropy;
     drawInitMenu();
   }
-  if(btnSelect.click()){
+  if(btnSelect.click() == SingleClick){
     myWallet.nWords = 12;
     myWallet.State  = STATE_WORDS;
     drawWordsMenu();
@@ -95,11 +146,11 @@ void doInitMenu(void){
 
 /**************🍃 SELECT WORDS *****************/
 void doMenuWords(void){
-  if(btnMove.click()){
+  if(btnMove.click() == SingleClick){
     myWallet.nWords = (myWallet.nWords == 12) ? 24 : 12;
     drawWordsMenu();
   }
-  if(btnSelect.click()){
+  if(btnSelect.click() == SingleClick){
     resetEntropy();
     if(myWallet.entropySrc == coinEntropy){
       myWallet.State = STATE_COINSEED;
@@ -119,10 +170,13 @@ void doMenuWords(void){
 
 /**************🍃 COIN ENTROPY *****************/
 void doCoinSeed(void){
-  if(!(btnMove.click() || btnSelect.click())) return;
+  if(holdToStartOver()) return;
+
+  const int mv = btnMove.click(), sel = btnSelect.click();
+  if(mv != SingleClick && sel != SingleClick) return;
 
   const uint16_t maxBits = entropyBytes() * 8;
-  const uint8_t  coin    = btnMove.click() ? 1 : 0;
+  const uint8_t  coin    = (mv == SingleClick) ? 1 : 0;
 
   //OR, nunca sumar: sumar arrastraría acarreos a los bits vecinos
   entropy[myWallet.nBCoinEntropy/8] |= (coin << (7 - myWallet.nBCoinEntropy%8));
@@ -137,14 +191,16 @@ void doCoinSeed(void){
 
 /**************🍃 DICE ENTROPY *****************/
 void doDiceSeed(void){
+  if(holdToStartOver()) return;
+
   const uint8_t total = diceRollsNeeded();
 
-  if(btnMove.click()){
+  if(btnMove.click() == SingleClick){
     diceValue = (diceValue % 6) + 1;   //1..6, da la vuelta
     ui::diceUpdate(myWallet.nRolls, total, diceValue, rollHist);
   }
 
-  if(btnSelect.click()){
+  if(btnSelect.click() == SingleClick){
     diceRolls[myWallet.nRolls++] = '0' + diceValue;
     rollHist[0] = rollHist[1]; rollHist[1] = rollHist[2]; rollHist[2] = diceValue;
     diceValue = 1;
@@ -172,7 +228,7 @@ static void seedPageStep(int dir){
 }
 
 void doShowSeed(void){
-  if(btnMove.click()) seedPageStep(+1);
+  if(btnMove.click() == SingleClick) seedPageStep(+1);
 
   const int sel = btnSelect.click();
   if(sel == LongClick && menuSeed == SHOW_EXIT){

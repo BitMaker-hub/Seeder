@@ -104,6 +104,23 @@ pio run -e seeder
 Las librerías (`uBitcoin`, `TFT_eSPI`) van fijadas dentro de `lib/` a propósito:
 un generador de semillas debe compilar igual hoy que dentro de cinco años.
 
+## Controles
+
+Dos botones y nada más. **MOVE** es el de arriba y **OK** el de abajo.
+
+| Dónde estás | MOVE | OK |
+|---|---|---|
+| Menú y elección de palabras | cambia la opción | acepta |
+| Lanzando la moneda | cara | cruz |
+| Tirando el dado | 1 → 6 | acepta la tirada |
+| Leyendo la semilla | página siguiente | página anterior |
+| Última página (`Exit`) | vuelve a la primera | mantener para salir y borrar |
+
+Durante la captura, **mantener OK tres segundos vuelve al menú** y borra lo que
+llevaras metido: si te has equivocado en la tirada 40 de 99 no hace falta
+desenchufar el aparato. A los ~1,2 s aparece el aviso con una barra que se llena;
+si sueltas antes, esa pulsación no cuenta como cara, cruz ni tirada.
+
 ## Verificación
 
 No te fíes de la SEEDER: compruébala. La pantalla `Entropy (hex)` te enseña los
