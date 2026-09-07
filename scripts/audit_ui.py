@@ -137,6 +137,23 @@ def audit(board, sym):
          sym["bx"], sym["bx"] + sym["bw"], sym["by"], sym["by"] + sym["bh"]),
     ]
 
+    # El aviso de "mantener OK" tapa el area de trabajo pero NO puede invadir
+    # el rail, asi que se mide contra UI_RAIL_X y no contra el ancho total.
+    tw = 10 * (6 * sym["UI_BIG_BODY"] + 1) - 1       # "START OVER" a doble tamano
+    sw = 17 * (6 + 1) - 1                            # "RELEASE TO CANCEL"
+    # tiny() con datum 'C' hace px = x - w/2 y avanza w: en anchos impares el
+    # borde derecho cae 1 px mas alla de x + w//2, asi que se calcula igual.
+    cen = lambda x, w: (x - w//2, x - w//2 + w)
+    c = sym["UI_RAIL_X"] // 2
+    work = [
+        ("aviso: titulo START OVER",
+         *cen(c, tw), sy(38), sy(38) + 8 * sym["UI_BIG_BODY"]),
+        ("aviso: barra del mantenido",
+         sym["UI_M"], sym["UI_RAIL_X"] - sym["UI_M"], sy(68), sy(68) + sy(10)),
+        ("aviso: RELEASE TO CANCEL",
+         *cen(c, sw), sy(92), sy(92) + 8),
+    ]
+
     print(f"\n=== {board}   {sym['UI_W']}x{sym['UI_H']} ===")
     print(f"  {checked} textos comprobados: "
           + ("sin desbordes" if not problems else f"{len(problems)} PROBLEMAS"))
@@ -150,6 +167,20 @@ def audit(board, sym):
         if not ok:
             problems.append(f"{name}: x {x0}..{x1} y {y0}..{y1}")
         print(f"    {'ok ' if ok else 'MAL'} {name:52s} x {x0:3d}..{x1:3d}  y {y0:3d}..{y1:3d}")
+
+    for name, x0, x1, y0, y1 in work:
+        ok = x0 >= 0 and x1 <= sym["UI_RAIL_X"] and y0 >= 0 and y1 <= sym["UI_H"]
+        if not ok:
+            problems.append(f"{name}: x {x0}..{x1} y {y0}..{y1} (limite {sym['UI_RAIL_X']})")
+        print(f"    {'ok ' if ok else 'MAL'} {name:52s} x {x0:3d}..{x1:3d}  y {y0:3d}..{y1:3d}")
+
+    # El aviso reescribe el rail entero y vuelve a poner OK/HOLD y el caret.
+    hx0, hx1 = cen(sym["UI_RAIL_CX"], 4 * 6)          # "HOLD", sin espaciado
+    ok = hx0 > sym["UI_RAIL_X"] and hx1 <= sym["UI_W"] and sy(106) + 8 <= sy(118)
+    if not ok:
+        problems.append(f"aviso: OK/HOLD del rail mal colocado x {hx0}..{hx1}")
+    print(f"    {'ok ' if ok else 'MAL'} {'aviso: OK/HOLD en el rail':52s} "
+          f"x {hx0:3d}..{hx1:3d}  y {sy(96):3d}..{sy(106)+8:3d}")
     return problems
 
 

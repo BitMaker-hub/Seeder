@@ -27,6 +27,12 @@ void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy);
 void diceEnter(uint8_t totalRolls);
 void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, const uint8_t *hist);
 
+/* Aviso de "mantener OK para empezar de nuevo". Se pinta encima de la
+   captura, de ahi que vayan separadas: holdEnter() una vez y holdUpdate()
+   en cada vuelta del bucle, que si no la barra parpadea. */
+void holdEnter(void);
+void holdUpdate(float frac);
+
 void generating(void);
 
 void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint8_t total);

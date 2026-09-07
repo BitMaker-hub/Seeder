@@ -31,6 +31,9 @@ abandon x23 art
 El dado siempre vuelve al 1 después de aceptar una tirada, así que **pulsando
 sólo OK** metes una tirada de 1 cada vez. 50 veces para 12 palabras, 99 para 24.
 
+Toques cortos: mantener OK más de un segundo no cuenta como tirada, saca el aviso
+de `START OVER` y a los tres segundos vuelve al menú.
+
 **12 palabras — 50 unos**
 
 ```
