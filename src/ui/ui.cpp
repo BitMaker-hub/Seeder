@@ -6,8 +6,30 @@
 #include "../Lib/Free_Fonts.h"
 #include "../qrcoded.h"
 #include "brand.h"
+#if !defined(SEEDER_BOARD_TDISPLAY_S3)
+  #include "../Lib/images_splash85.h"
+#endif
 
 extern TFT_eSPI tft;
+
+/* Los bitmaps del splash no escalan con la placa, asi que cada una usa el suyo:
+   a tamano nativo el grupo se comia los 135 px de la pequena y dejaba los
+   creditos pegados al borde. En la S3 caben de sobra sin tocar. */
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+  #define SPLASH_LOGO    uBitcoinLogo
+  #define SPLASH_LOGO_W  logouBTCWidth
+  #define SPLASH_LOGO_H  logouBTCHeight
+  #define SPLASH_PW      powered_logo
+  #define SPLASH_PW_W    poweredWidth
+  #define SPLASH_PW_H    poweredHeight
+#else
+  #define SPLASH_LOGO    uBitcoinLogoS
+  #define SPLASH_LOGO_W  logouBTCSWidth
+  #define SPLASH_LOGO_H  logouBTCSHeight
+  #define SPLASH_PW      powered_logoS
+  #define SPLASH_PW_W    poweredSWidth
+  #define SPLASH_PW_H    poweredSHeight
+#endif
 
 namespace ui {
 
@@ -167,9 +189,34 @@ void splash(void){
   tft.pushImage((UI_W-logoWidth)/2, (UI_H-logoHeight)/2 - SY(8), logoWidth, logoHeight, seeder_logo);
   tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, UI_H - SY(15), UI_DIM, 'C', 1);
   delay(2000);
+
+  /* Segunda pantalla: los creditos. Los dos logotipos y la linea de uBitcoin
+     son bitmaps y no escalan, asi que van como un grupo -uno debajo del otro
+     a distancia fija- y los creditos se anclan al borde de abajo.
+
+     Cada nombre va bajo su preposicion en vez de en una sola fila porque
+     "MADE BY BITMAKER" y "CREDITS TO LUNATICOIN" seguidos ocupan 257 px
+     (111 + 146, con el sp=1 que se les pasa) y la placa pequena tiene 240,
+     de los que ademas 20 son margenes: se tocarian. Partidos en dos, el
+     bloque mas ancho mide 69 y sobra sitio en las dos placas. */
   tft.fillScreen(UI_BG);
-  tft.pushImage((UI_W-logouBTCWidth)/2, (UI_H-logouBTCHeight)/2 - SY(12), logouBTCWidth, logouBTCHeight, uBitcoinLogo);
-  tft.pushImage((UI_W-poweredWidth)/2, UI_H - poweredHeight - SY(8), poweredWidth, poweredHeight, powered_logo);
+  const int cr2 = UI_H - SY(9) - UI_TINY_H;     //linea de los nombres
+  const int cr1 = cr2 - SY(12);                 //linea de las preposiciones
+
+  /* El grupo se centra en la banda que queda por encima de los creditos, y no
+     a una distancia fija del borde: como los bitmaps no escalan, colgarlo de
+     arriba lo dejaba pegado al techo en la placa grande con un hueco muerto
+     debajo. Centrado sale igual que antes en la pequena y baja solo en la S3. */
+  const int grupo = SPLASH_LOGO_H + SY(6) + SPLASH_PW_H;
+  const int top   = (cr1 - grupo) / 2;
+  tft.pushImage((UI_W-SPLASH_LOGO_W)/2, top,
+                SPLASH_LOGO_W, SPLASH_LOGO_H, SPLASH_LOGO);
+  tft.pushImage((UI_W-SPLASH_PW_W)/2, top + SPLASH_LOGO_H + SY(6),
+                SPLASH_PW_W, SPLASH_PW_H, SPLASH_PW);
+  tiny("MADE BY",    UI_M,        cr1, UI_DIM,  'L', 1);
+  tiny("BITMAKER",   UI_M,        cr2, UI_TEXT, 'L', 1);
+  tiny("CREDITS TO", UI_W - UI_M, cr1, UI_DIM,  'R', 1);
+  tiny("LUNATICOIN", UI_W - UI_M, cr2, UI_TEXT, 'R', 1);
   delay(2000);
   tft.fillScreen(UI_BG);
 }

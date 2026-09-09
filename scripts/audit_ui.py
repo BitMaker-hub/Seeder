@@ -19,6 +19,33 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UI_CPP = ROOT / "src" / "ui" / "ui.cpp"
 
+
+COMMENT = re.compile("//[^\n]*")
+
+
+def img_dims():
+    """Tamanos de los bitmaps del splash, leidos de las cabeceras.
+
+    Copiarlos aqui como numeros sueltos hacia que el script se diese la razon
+    a si mismo: reexportar un logo movia la composicion del firmware y no la
+    de la auditoria, y CI seguia en verde."""
+    d = {}
+    for f in ("images.h", "images_splash85.h"):
+        p = ROOT / "src" / "Lib" / f
+        if not p.exists():
+            continue
+        txt = COMMENT.sub("", p.read_text(encoding="utf-8", errors="ignore"))
+        for name, val in re.findall(r"const uint16_t (\w+)\s*=\s*(\d+)\s*;", txt):
+            d[name] = int(val)
+    falta = [k for k in ("logouBTCHeight", "poweredWidth", "poweredHeight",
+                         "logouBTCSHeight", "poweredSWidth", "poweredSHeight") if k not in d]
+    if falta:
+        sys.exit("no encuentro en src/Lib/: " + ", ".join(falta))
+    return d
+
+
+IMG = img_dims()
+
 BOARDS = {
     "T-Display    (ESP32)":    dict(w=240, h=135),
     "T-Display-S3 (ESP32-S3)": dict(w=320, h=170),
@@ -43,12 +70,22 @@ def symbols(w, h):
     s["UI_RAIL_BOT_Y"] = sy(96)
     s["UI_HEAD_H"] = sy(36)
     s["UI_TINY_W"] = 6
+    s["UI_TINY_H"] = 8
     s["UI_BIG_BODY"] = 2
     s["UI_BIG_LH"] = sy(20)
     s["UI_BIG_CPL"] = (w - 2 * s["UI_M"]) // 12
     s["UI_TINY_CPL"] = (w - 2 * s["UI_M"]) // 6
     # constantes locales de la pantalla de salida
     s.update(bx=sx(126), by=sy(100), bw=sx(106), bh=sy(30))
+    # y las de los creditos del splash
+    s["cr2"] = h - sy(9) - s["UI_TINY_H"]
+    s["cr1"] = s["cr2"] - sy(12)
+    # cada placa usa su bitmap: la S3 el nativo, la pequena el del 85%
+    big = w >= 320
+    s["SPL_H"]  = IMG["logouBTCHeight" if big else "logouBTCSHeight"]
+    s["SPL_PW"] = IMG["poweredWidth"   if big else "poweredSWidth"]
+    s["SPL_PH"] = IMG["poweredHeight"  if big else "poweredSHeight"]
+    s["top"] = (s["cr1"] - (s["SPL_H"] + sy(6) + s["SPL_PH"])) // 2
     return s
 
 
@@ -71,6 +108,7 @@ def audit(board, sym):
     problems = []
     checked = 0
 
+    creditos = {"L": [], "R": []}
     for txt, xs, ys, datum, sp, size in TINY.findall(src):
         x, y = ev(xs, sym), ev(ys, sym)
         if x is None or y is None:
@@ -80,7 +118,13 @@ def audit(board, sym):
         adv = 6 * px + int(sp)
         wid = len(txt) * adv - int(sp)
         x0 = x - wid // 2 if datum == "C" else (x - wid if datum == "R" else x)
-        if x0 < 0 or x0 + wid > sym["UI_W"] or y + 8 * px > sym["UI_H"]:
+        # Los creditos del splash son los textos que caen en sus dos lineas.
+        # Se recogen del propio ui.cpp, con el texto y el espaciado reales:
+        # escribirlos aqui a mano hacia que la comprobacion se diera la razon
+        # a si misma y no saltara al alargar un nombre.
+        if y in (sym["cr1"], sym["cr2"]) and datum in "LR":
+            creditos[datum].append((txt, x0, x0 + wid))
+        if x0 < 0 or x0 + wid > sym["UI_W"] or y + sym["UI_TINY_H"] * px > sym["UI_H"]:
             problems.append(
                 f'texto "{txt}"  x {x0}..{x0+wid}  y {y}..{y+8*px}'
             )
@@ -133,6 +177,9 @@ def audit(board, sym):
                        sym["UI_W"] - qw - quiet, sym["UI_W"] - quiet,
                        (sym["UI_H"] - qw) // 2, (sym["UI_H"] - qw) // 2 + qw))
     blocks += [
+        ("splash: logotipos + Powered by uBitcoin",
+         (sym["UI_W"]-sym["SPL_PW"])//2, (sym["UI_W"]-sym["SPL_PW"])//2 + sym["SPL_PW"],
+         sym["top"], sym["top"] + sym["SPL_H"] + sy(6) + sym["SPL_PH"]),
         ("recuadro HOLD OK",
          sym["bx"], sym["bx"] + sym["bw"], sym["by"], sym["by"] + sym["bh"]),
     ]
@@ -173,6 +220,26 @@ def audit(board, sym):
         if not ok:
             problems.append(f"{name}: x {x0}..{x1} y {y0}..{y1} (limite {sym['UI_RAIL_X']})")
         print(f"    {'ok ' if ok else 'MAL'} {name:52s} x {x0:3d}..{x1:3d}  y {y0:3d}..{y1:3d}")
+
+    # --- creditos del splash -------------------------------------------
+    # El bounding box solo, por como se calcula top, no puede fallar nunca:
+    # hay que comprobar las dos cosas que este diseno si arriesga.
+    if creditos["L"] and creditos["R"]:
+        izq = max(e for _, _, e in creditos["L"])       # borde derecho de la columna izquierda
+        der = min(s for _, s, _ in creditos["R"])       # borde izquierdo de la derecha
+        ok = izq < der
+        if not ok:
+            choca = "/".join(t for t, _, _ in creditos["L"] + creditos["R"])
+            problems.append(f"splash: las columnas de creditos chocan en x {der}..{izq} ({choca})")
+        print(f"    {'ok ' if ok else 'MAL'} {'splash: columnas de creditos, izq | der':52s} "
+              f"x ..{izq:3d} | {der:3d}..   ({len(creditos['L'])}+{len(creditos['R'])} textos)")
+
+    hueco = sym["cr1"] - (sym["top"] + sym["SPL_H"] + sy(6) + sym["SPL_PH"])
+    ok = hueco > 0
+    if not ok:
+        problems.append(f"splash: el grupo pisa los creditos (hueco {hueco})")
+    print(f"    {'ok ' if ok else 'MAL'} {'splash: hueco grupo -> creditos':52s} "
+          f"{hueco:3d} px")
 
     # El aviso reescribe el rail entero y vuelve a poner OK/HOLD y el caret.
     hx0, hx1 = cen(sym["UI_RAIL_CX"], 4 * 6)          # "HOLD", sin espaciado
