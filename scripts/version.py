@@ -16,5 +16,12 @@ commit = git("rev-parse", "--short=7", "HEAD") or "nogit"
 if git("status", "--porcelain"):
     commit += "*"          # el árbol tenía cambios sin comitear
 
-env.Append(CPPDEFINES=[("SEEDER_COMMIT", env.StringifyMacro(commit))])
-print("Version: %s  commit: %s" % (env.GetProjectOption("custom_version", "?"), commit))
+# La versión se inyecta AQUÍ y no como -D en platformio.ini para que sólo
+# exista en un sitio. Estaban las dos cosas a la vez y al publicar la 2.1.1
+# se subió custom_version pero no el -D, así que el firmware siguió diciendo
+# V2.1.0 en el arranque: el número que se ve venía del que nadie tocaba.
+version = env.GetProjectOption("custom_version", "") or "dev"
+
+env.Append(CPPDEFINES=[("SEEDER_VERSION", env.StringifyMacro(version)),
+                       ("SEEDER_COMMIT",  env.StringifyMacro(commit))])
+print("Version: %s  commit: %s" % (version, commit))
