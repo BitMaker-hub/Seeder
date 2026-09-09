@@ -9,7 +9,7 @@ exportarla mediante un código QR.
 
 Todo ello gracias a la genial idea de @Lunaticoin y mi trabajo.
 
-![image](https://github.com/BitMaker-hub/Seeder/blob/master/Images/Seeder_entry.png)
+![SEEDER, genera semillas offline](Images/Seeder_cover.jpg)
 
 ## La SEEDER no genera entropía
 
