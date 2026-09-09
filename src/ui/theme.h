@@ -20,7 +20,8 @@
 #define UI_DIM        0x4A49   // texto secundario y pistas
 #define UI_TRACK      0x2945   // reglas y fondo de barras
 #define UI_BG         0x0000
-#define UI_QR_LIGHT   0xFFFF
+#define UI_QR_LIGHT   0xFFFF   // fondo y zona tranquila del QR
+#define UI_QR_DARK    0x0000   // los módulos, oscuros sobre claro como manda
 
 /*** Métricas *********************************************************/
 #define UI_M          SX(10)     // margen izquierdo del contenido

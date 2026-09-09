@@ -487,13 +487,19 @@ void seedQr(const String &data){
   uint8_t buf[qrcode_getBufferSize(11)];        // dimensionado al peor caso
   if(qrcode_initText(&qrcode, buf, version, 0, data.c_str()) < 0) return;
 
-  /* El mayor píxel por módulo que quepa con 6px de margen arriba y abajo.
-     A la hora de escanear manda el tamaño del módulo, no el del código
-     entero: 41 módulos a 3px se leen mucho mejor que 61 a 2px, aunque
-     midan lo mismo. La v1 dejaba 2px de margen, que es medio módulo. */
+  /* El módulo manda para escanear, pero la zona tranquila hace falta o no
+     hay código que valga: se coge el mayor píxel por módulo que deje al
+     menos 2 módulos de margen claro, y luego se ensancha el margen con lo
+     que sobre, hasta los 4 que pide la norma.
+
+     Medido contra un decodificador de verdad, con y sin desenfoque: en la
+     T-Display salen 3px con 2 módulos para 12 palabras y 2px con 4 para 24;
+     en la S3, 3px y 4 módulos en los dos casos. */
+  const int QUIET_MIN = 2, QUIET_MAX = 4;
   int px = 1;
-  while((px+1) * qrcode.size <= UI_H - 12 && px < 6) px++;
-  const int quiet = (3*px > 6) ? 3*px : 6;   // 3 módulos por la derecha
+  while((qrcode.size + 2*QUIET_MIN) * (px+1) <= UI_H && px < 6) px++;
+  int quiet = (UI_H - qrcode.size*px) / (2*px);
+  if(quiet > QUIET_MAX) quiet = QUIET_MAX;
 
   tft.fillScreen(UI_BG);
   tiny("EXPORT", UI_M, SY(10), UI_ACCENT, 'L', 1);
@@ -501,13 +507,20 @@ void seedQr(const String &data){
   tiny("OFFLINE WALLET",UI_M, SY(44), UI_DIM, 'L', 0);
   tiny("NEVER A PHONE", UI_M, SY(62), UI_ACCENT, 'L', 0);
 
-  const int qw = qrcode.size * px;
-  const int qx = UI_W - qw - quiet;
+  /* Oscuro sobre claro, que es como se define un QR. Estaba al revés: los
+     módulos oscuros se pintaban en blanco y el fondo negro hacía de zona
+     tranquila, así que salía un código invertido. Muchos lectores de móvil
+     no leen un QR invertido, y comprobado con un decodificador: el de antes
+     no se leía ni sin desenfoque, y éste sí. */
+  const int qw = qrcode.size * px, b = quiet * px;
+  const int qx = UI_W - qw - b - SX(2);
   const int qy = (UI_H - qw) / 2;
+
+  tft.fillRect(qx - b, qy - b, qw + 2*b, qw + 2*b, UI_QR_LIGHT);
   for(uint8_t y=0; y<qrcode.size; y++)
     for(uint8_t x=0; x<qrcode.size; x++)
-      tft.fillRect(qx + x*px, qy + y*px, px, px,
-                   qrcode_getModule(&qrcode, x, y) ? UI_QR_LIGHT : UI_BG);
+      if(qrcode_getModule(&qrcode, x, y))
+        tft.fillRect(qx + x*px, qy + y*px, px, px, UI_QR_DARK);
 }
 
 void seedExit(void){

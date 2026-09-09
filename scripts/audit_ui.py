@@ -165,17 +165,21 @@ def audit(board, sym):
         ("entropía, 8 bytes por fila, 4 filas",
          sx(8), sx(8) + 7 * sx(29) + 24, sy(32), sy(32) + 3 * sy(26) + 16),
     ]
-    # El QR elige versión según la longitud y el mayor píxel por módulo que
-    # quepa, así que hay que comprobar los dos casos por separado.
-    for words, mods in (("12 palabras", 41), ("24 palabras", 49)):
+    # El QR elige versión según la longitud, y luego el mayor píxel por módulo
+    # que deje 2 módulos de margen, ensanchando el margen hasta 4 con lo que
+    # sobre. Se comprueban los PEORES casos: 12 palabras de 8 letras son 107
+    # caracteres (versión 6, 41 módulos) y 24 de 8 son 215 (versión 9, 53).
+    # El bloque incluye la zona tranquila, que también se pinta.
+    for words, mods in (("12 palabras", 41), ("24 palabras", 53)):
         px = 1
-        while (px + 1) * mods <= sym["UI_H"] - 12 and px < 6:
+        while (mods + 4) * (px + 1) <= sym["UI_H"] and px < 6:
             px += 1
-        qw = mods * px
-        quiet = max(3 * px, 6)
-        blocks.append((f"QR, {words} ({mods} módulos a {px}px)",
-                       sym["UI_W"] - qw - quiet, sym["UI_W"] - quiet,
-                       (sym["UI_H"] - qw) // 2, (sym["UI_H"] - qw) // 2 + qw))
+        quiet = min((sym["UI_H"] - mods * px) // (2 * px), 4)
+        qw, b = mods * px, quiet * px
+        x1 = sym["UI_W"] - sx(2)
+        blocks.append((f"QR, {words} ({mods} módulos a {px}px, margen {quiet})",
+                       x1 - qw - 2 * b, x1,
+                       (sym["UI_H"] - qw) // 2 - b, (sym["UI_H"] - qw) // 2 + qw + b))
     blocks += [
         ("splash: logotipos + Powered by uBitcoin",
          (sym["UI_W"]-sym["SPL_PW"])//2, (sym["UI_W"]-sym["SPL_PW"])//2 + sym["SPL_PW"],
@@ -220,6 +224,21 @@ def audit(board, sym):
         if not ok:
             problems.append(f"{name}: x {x0}..{x1} y {y0}..{y1} (limite {sym['UI_RAIL_X']})")
         print(f"    {'ok ' if ok else 'MAL'} {name:52s} x {x0:3d}..{x1:3d}  y {y0:3d}..{y1:3d}")
+
+    # El QR crece hacia la izquierda segun la version; el texto de esa pantalla
+    # vive a su izquierda. Que no se pisen es lo unico que los separa.
+    for words, mods in (("12 palabras", 41), ("24 palabras", 53)):
+        px = 1
+        while (mods + 4) * (px + 1) <= sym["UI_H"] and px < 6:
+            px += 1
+        quiet = min((sym["UI_H"] - mods * px) // (2 * px), 4)
+        qleft = sym["UI_W"] - sx(2) - mods * px - 2 * quiet * px
+        texto = sym["UI_M"] + len("OFFLINE WALLET") * sym["UI_TINY_W"]
+        ok = texto < qleft
+        if not ok:
+            problems.append(f"QR {words}: el codigo pisa el texto ({qleft} < {texto})")
+        print(f"    {'ok ' if ok else 'MAL'} {'QR ' + words + ': texto | codigo':52s} "
+              f"x ..{texto:3d} | {qleft:3d}..")
 
     # --- creditos del splash -------------------------------------------
     # El bounding box solo, por como se calcula top, no puede fallar nunca:
