@@ -121,6 +121,38 @@ llevaras metido: si te has equivocado en la tirada 40 de 99 no hace falta
 desenchufar el aparato. A los ~1,2 s aparece el aviso con una barra que se llena;
 si sueltas antes, esa pulsación no cuenta como cara, cruz ni tirada.
 
+## Llevarla a Sparrow
+
+La SEEDER exporta dos QR distintos, y **no dan el mismo poder**:
+
+| Pantalla | Qué lleva | Quien lo escanee |
+|---|---|---|
+| `Export` | las 12 o 24 palabras | **puede gastar** |
+| `Watch only` | el zpub de cuenta | sólo ve el saldo |
+
+**Sólo lectura** — es el que puedes escanear con el ordenador delante:
+
+1. `File > New Wallet…`, le pones nombre y `Create Wallet`.
+2. Se abre en *Settings* con **Single Signature** y **Native Segwit (P2WPKH)**
+   ya puestos. Déjalos: son justo los de la SEEDER.
+3. En *Keystores*, el icono del **ojo**, `Watch Only Wallet`.
+4. En la fila `xpub:`, el botón de la **cámara**, y le enseñas el QR.
+5. La SEEDER te muestra la huella maestra en esa misma pantalla. Cópiala en
+   *Master fingerprint*, que Sparrow lo deja en `00000000` y ese cero acaba
+   metido en cada PSBT que construya.
+6. `Apply`.
+
+> El botón de QR que hay junto al campo `Descriptor:` **no** sirve para esto:
+> con una clave suelta no hace nada y no avisa. Tiene que ser el de la fila
+> `xpub:`.
+
+**La semilla**, si de verdad la quieres importar: `BIP39 keystore`, la **flecha
+del desplegable** junto a `Use 24 Words`, y ahí dentro `Scan QR…`. No hay botón
+visible y no está documentado. Necesita Sparrow **1.7.7 o posterior**.
+
+Pero piénsatelo: meter las palabras en un ordenador conectado tira por tierra
+todo lo demás. Para mirar el saldo te basta el zpub.
+
 ## Verificación
 
 No te fíes de la SEEDER: compruébala. La pantalla `Entropy (hex)` te enseña los
