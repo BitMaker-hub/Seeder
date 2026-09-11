@@ -43,9 +43,9 @@ enum { coinEntropy, diceEntropy };
 #define SHOW_SEED1        1
 #define SHOW_SEED2        2
 #define SHOW_DATA1        3
-#define SHOW_DATA2        4
-#define SHOW_ENTROPY      5
-#define SHOW_EXPORTQR     6
+#define SHOW_ENTROPY      4
+#define SHOW_EXPORTQR     5
+#define SHOW_EXPORTZPUB   6
 #define SHOW_EXIT         7
 /********** 🍃 DICE ************************/
 // Same scheme as Coldcard: the ASCII digits of the rolls are hashed with
@@ -64,6 +64,7 @@ typedef struct {
    uint16_t nBCoinEntropy;  //Bits of entropy captured so far (24 words needs 256, does not fit in uint8_t)
    uint8_t nRolls;          //Dice rolls entered so far
    String xpub;             //Current account zpub
+   String fingerprint;      //Huella de la clave maestra, para el descriptor
    String firstAddress;     //m/84'/0'/0'/0/0
    String mnemonic;         //Current words
    String entropyHex;       //Entropy the seed was derived from, shown for offline verification

@@ -37,9 +37,9 @@ void generating(void);
 
 void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint8_t total);
 void seedAddress(const String &addr, uint8_t step, uint8_t total);
-void seedZpub(const String &zpub, uint8_t step, uint8_t total);
 void seedEntropy(const String &hex, uint8_t step, uint8_t total);
-void seedQr(const String &data);
+void seedQr(const String &data, uint8_t nWords);
+void seedZpubQr(const String &data, const String &fingerprint);
 void seedExit(void);
 
 }  // namespace ui

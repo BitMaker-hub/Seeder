@@ -37,6 +37,9 @@ void createSeed(int nWords, uint8_t * entropy){
   HDPrivateKey account = hd.derive("m/84'/0'/0'/");
 
   myWallet.xpub= account.xpub();
+  //La huella es de la clave MAESTRA, no de la de cuenta: es lo que identifica
+  //al monedero en un descriptor con origen.
+  myWallet.fingerprint = hd.fingerprint();
   myWallet.mnemonic = mn;
   // m/84'/0'/0'/0/0 - account.address() would be the account key itself,
   // which no wallet ever shows and cannot be used to cross-check the seed

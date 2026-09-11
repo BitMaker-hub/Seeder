@@ -434,29 +434,6 @@ void seedAddress(const String &addr, uint8_t step, uint8_t total){
   }
 }
 
-void seedZpub(const String &zpub, uint8_t step, uint8_t total){
-  head("ACCOUNT ZPUB", step, total);
-
-  /* Un zpub son 111 caracteres de base58: no se copia a mano, se escanea
-     para montar el monedero de sólo lectura. Al lado, principio y final
-     para poder identificarlo de un vistazo. */
-  tiny(zpub.substring(0, 8),                    UI_M, SY(32), UI_TEXT, 'L', 0, UI_BIG_BODY);
-  tiny("..." + zpub.substring(zpub.length()-5), UI_M, SY(54), UI_TEXT, 'L', 0, UI_BIG_BODY);
-  tiny("SCAN TO IMPORT",                        UI_M, SY(84), UI_DIM,  'L', 1);
-  tiny("WATCH-ONLY",                            UI_M, SY(96), UI_DIM,  'L', 1);
-
-  const int version = 6, px = 2;
-  QRCode qr;
-  uint8_t buf[qrcode_getBufferSize(version)];
-  if(qrcode_initText(&qr, buf, version, 0, zpub.c_str()) < 0) return;
-  /* Centrado en el hueco que queda bajo la cabecera, no pegado a ella */
-  const int x0 = UI_W - qr.size*px - SX(8);
-  const int y0 = SY(22) + (UI_H - SY(22) - qr.size*px) / 2;
-  for(uint8_t y=0; y<qr.size; y++)
-    for(uint8_t x=0; x<qr.size; x++)
-      tft.fillRect(x0 + x*px, y0 + y*px, px, px,
-                   qrcode_getModule(&qr, x, y) ? UI_QR_LIGHT : UI_BG);
-}
 
 void seedEntropy(const String &hex, uint8_t step, uint8_t total){
   head("ENTROPY (HEX)", step, total);
@@ -481,7 +458,12 @@ static uint8_t qrVersionFor(size_t len){
   return 11;                  // 61, el techo de siempre
 }
 
-void seedQr(const String &data){
+/* Las dos paginas de QR comparten geometria y solo cambia el rotulo: una
+   exporta la semilla y la otra la clave publica de cuenta, y el aviso tiene
+   que decir exactamente cual de las dos, porque no se pueden tratar igual. */
+static void qrPage(const char *tag, const char *l1, const char *l2,
+                   const char *l3, const char *extra, const String &value,
+                   const String &data){
   const uint8_t version = qrVersionFor(data.length());
   QRCode qrcode;
   uint8_t buf[qrcode_getBufferSize(11)];        // dimensionado al peor caso
@@ -502,10 +484,17 @@ void seedQr(const String &data){
   if(quiet > QUIET_MAX) quiet = QUIET_MAX;
 
   tft.fillScreen(UI_BG);
-  tiny("EXPORT", UI_M, SY(10), UI_ACCENT, 'L', 1);
-  tiny("SCAN WITH AN",  UI_M, SY(34), UI_DIM, 'L', 0);
-  tiny("OFFLINE WALLET",UI_M, SY(44), UI_DIM, 'L', 0);
-  tiny("NEVER A PHONE", UI_M, SY(62), UI_ACCENT, 'L', 0);
+  tiny(tag, UI_M, SY(10), UI_ACCENT, 'L', 1);
+  tiny(l1,  UI_M, SY(34), UI_TEXT,   'L', 0);   //lo que hay dentro: lo primero que se lee
+  tiny(l2,  UI_M, SY(44), UI_DIM,    'L', 0);
+  tiny(l3,  UI_M, SY(62), UI_ACCENT, 'L', 0);
+  /* Sparrow deja la huella maestra en 00000000 al escanear una clave suelta,
+     y ese cero acaba metido en cada PSBT que construya. Se enseña aquí para
+     poder teclearla, que es un campo editable en su pantalla de ajustes. */
+  if(extra[0]){
+    tiny(extra, UI_M, SY(84), UI_DIM,  'L', 0);
+    tiny(value, UI_M, SY(94), UI_TEXT, 'L', 0);
+  }
 
   /* Oscuro sobre claro, que es como se define un QR. Estaba al revés: los
      módulos oscuros se pintaban en blanco y el fondo negro hacía de zona
@@ -521,6 +510,27 @@ void seedQr(const String &data){
     for(uint8_t x=0; x<qrcode.size; x++)
       if(qrcode_getModule(&qrcode, x, y))
         tft.fillRect(qx + x*px, qy + y*px, px, px, UI_QR_DARK);
+}
+
+/* La semilla entera: quien lo escanee puede gastar. Dice cuantas palabras
+   lleva para que no haya duda de que QR es este, y en paralelo con la de
+   solo lectura: que hay dentro, que permite y la consecuencia.
+   Dos llamadas con literales en vez de un ternario para que la auditoria
+   pueda medir los dos rotulos. */
+void seedQr(const String &data, uint8_t nWords){
+  if(nWords == 12)
+    qrPage("EXPORT", "12 SEED WORDS", "CAN SPEND", "NEVER A PHONE",
+           "SCAN WITH AN", "OFFLINE WALLET", data);
+  else
+    qrPage("EXPORT", "24 SEED WORDS", "CAN SPEND", "NEVER A PHONE",
+           "SCAN WITH AN", "OFFLINE WALLET", data);
+}
+
+/* Solo la clave publica de cuenta. Sirve para mirar el saldo y nada mas, y
+   por eso es la unica pagina que se puede escanear con el ordenador delante. */
+void seedZpubQr(const String &data, const String &fingerprint){
+  qrPage("WATCH ONLY", "ACCOUNT ZPUB", "SEES BALANCE", "CANNOT SPEND",
+         "FINGERPRINT", fingerprint, data);
 }
 
 void seedExit(void){

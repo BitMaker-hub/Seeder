@@ -100,6 +100,10 @@ TINY = re.compile(
     r"tiny\(\s*\"([^\"]*)\"\s*,\s*([^,]+),\s*([^,]+),\s*[^,]+,\s*'(\w)'\s*,\s*(\d+)\s*(?:,\s*(\w+)\s*)?\)"
 )
 DRAWSTR = re.compile(r'drawString\(\s*"([^"]*)"\s*,\s*([^,]+),\s*([^,]+),')
+# Las paginas de QR reciben cinco rotulos literales (el primero con espaciado
+# 1, el resto con 0) y un sexto valor, que es texto fijo en la de la semilla y
+# una variable -la huella, 8 hex- en la de solo lectura.
+QRPAGE = re.compile(r'qrPage\(' + r'\s*"([^"]*)"\s*,' * 5 + r'\s*(?:"([^"]*)"|(\w+))')
 SETFONT = re.compile(r"setFreeFont\((\w+)\)")
 
 
@@ -227,18 +231,32 @@ def audit(board, sym):
 
     # El QR crece hacia la izquierda segun la version; el texto de esa pantalla
     # vive a su izquierda. Que no se pisen es lo unico que los separa.
-    for words, mods in (("12 palabras", 41), ("24 palabras", 53)):
+    # El rotulo mas largo sale del propio ui.cpp: ponerlo aqui a mano era
+    # repetir el error de que el script se de la razon a si mismo.
+    anchos = []
+    for tag, l1, l2, l3, extra, vlit, vvar in QRPAGE.findall(src):
+        anchos.append((tag, len(tag) * (sym["UI_TINY_W"] + 1) - 1))
+        anchos += [(t, len(t) * sym["UI_TINY_W"]) for t in (l1, l2, l3, extra) if t]
+        if vlit:                  # el valor es texto fijo: se mide tal cual
+            anchos.append((vlit, len(vlit) * sym["UI_TINY_W"]))
+        elif vvar:                # es una variable: la huella, 8 hex
+            anchos.append(("<" + vvar + ">", 8 * sym["UI_TINY_W"]))
+    if not anchos:
+        problems.append("no encuentro los rotulos de las paginas de QR en ui.cpp")
+        anchos = [("?", 0)]
+    largo, ancho = max(anchos, key=lambda a: a[1])
+    texto = sym["UI_M"] + ancho
+    for caso, mods in (("zpub / 12 palabras", 41), ("descriptor", 45), ("24 palabras", 53)):
         px = 1
         while (mods + 4) * (px + 1) <= sym["UI_H"] and px < 6:
             px += 1
         quiet = min((sym["UI_H"] - mods * px) // (2 * px), 4)
         qleft = sym["UI_W"] - sx(2) - mods * px - 2 * quiet * px
-        texto = sym["UI_M"] + len("OFFLINE WALLET") * sym["UI_TINY_W"]
         ok = texto < qleft
         if not ok:
-            problems.append(f"QR {words}: el codigo pisa el texto ({qleft} < {texto})")
-        print(f"    {'ok ' if ok else 'MAL'} {'QR ' + words + ': texto | codigo':52s} "
-              f"x ..{texto:3d} | {qleft:3d}..")
+            problems.append(f"QR {caso}: el codigo pisa el rotulo \"{largo}\" ({qleft} < {texto})")
+        print(f"    {'ok ' if ok else 'MAL'} {'QR ' + caso + ': rotulo | codigo':52s} "
+              f"x ..{texto:3d} | {qleft:3d}..  ({mods} mod, {px}px)")
 
     # --- creditos del splash -------------------------------------------
     # El bounding box solo, por como se calcula top, no puede fallar nunca:

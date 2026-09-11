@@ -22,7 +22,7 @@ uint8_t diceRollsNeeded(void){ return (myWallet.nWords == 12) ? DICE_ROLLS_12 : 
 
 //Con 12 palabras no hay segunda página de mnemónico, así que las siguientes
 //bajan un número en vez de saltárselo
-static uint8_t seedSteps(void){ return (myWallet.nWords == 12) ? SHOW_EXPORTQR-1 : SHOW_EXPORTQR; }
+static uint8_t seedSteps(void){ return (myWallet.nWords == 12) ? SHOW_EXPORTZPUB-1 : SHOW_EXPORTZPUB; }
 static uint8_t seedStep(void) { return (myWallet.nWords == 12 && menuSeed > SHOW_SEED2) ? menuSeed-1 : menuSeed; }
 
 //Asignar "" sólo pone la longitud a cero: el texto se queda en el buffer
@@ -37,6 +37,7 @@ void wipeSeed(void){
   wipeString(myWallet.mnemonic);
   wipeString(myWallet.entropyHex);
   wipeString(myWallet.xpub);
+  wipeString(myWallet.fingerprint);
   wipeString(myWallet.firstAddress);
   memset(entropy,   0, sizeof(entropy));
   memset(diceRolls, 0, sizeof(diceRolls));
@@ -55,15 +56,22 @@ void resetEntropy(void){
 void drawInitMenu(void) { ui::menu(myWallet.entropySrc == diceEntropy); }
 void drawWordsMenu(void){ ui::words(myWallet.nWords); }
 
+/* Lo que va en el QR de solo lectura. Aislado aqui a proposito: de que
+   exactamente traga Sparrow depende el largo, y el largo decide el tamano del
+   modulo en la pantalla pequena. */
+static String watchOnlyExport(void){
+  return myWallet.xpub;
+}
+
 static void drawSeedPage(void){
   const uint8_t st = seedStep(), tot = seedSteps();
   switch(menuSeed){
     case SHOW_SEED1:    ui::mnemonic(myWallet.mnemonic, myWallet.nWords, 0,  st, tot); break;
     case SHOW_SEED2:    ui::mnemonic(myWallet.mnemonic, myWallet.nWords, 12, st, tot); break;
     case SHOW_DATA1:    ui::seedAddress(myWallet.firstAddress, st, tot); break;
-    case SHOW_DATA2:    ui::seedZpub(myWallet.xpub, st, tot); break;
     case SHOW_ENTROPY:  ui::seedEntropy(myWallet.entropyHex, st, tot); break;
-    case SHOW_EXPORTQR: ui::seedQr(myWallet.mnemonic); break;
+    case SHOW_EXPORTQR: ui::seedQr(myWallet.mnemonic, myWallet.nWords); break;
+    case SHOW_EXPORTZPUB: ui::seedZpubQr(watchOnlyExport(), myWallet.fingerprint); break;
     case SHOW_EXIT:     ui::seedExit(); break;
   }
 }
