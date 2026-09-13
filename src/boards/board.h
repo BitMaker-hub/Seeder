@@ -12,8 +12,14 @@
 
 #if defined(SEEDER_BOARD_TDISPLAY_S3)
   #include "tdisplay_s3.h"
+#elif defined(SEEDER_BOARD_HELTEC_T190)
+  #include "heltec_vision_master_t190.h"
 #else
   #include "tdisplay.h"
+#endif
+
+#if defined(SEEDER_BOARD_TDISPLAY_S3) || defined(SEEDER_BOARD_HELTEC_T190)
+  #define SEEDER_BOARD_LARGE
 #endif
 
 #define UI_REF_W  240        // lienzo de referencia del diseño
