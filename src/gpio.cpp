@@ -14,6 +14,12 @@ extern sButton btnSelect;
 
 void Init_TFT(void){
 
+#ifdef PIN_DISPLAY_POWER
+  pinMode(PIN_DISPLAY_POWER, OUTPUT);
+  digitalWrite(PIN_DISPLAY_POWER, PIN_DISPLAY_POWER_ACTIVE);
+  delay(20);
+#endif
+
 #ifdef PIN_POWER_ON
   /* La T-Display-S3 alimenta sus periféricos desde este pin. Si no se pone
      alto ANTES de arrancar el panel, la pantalla no enciende y la placa
@@ -95,7 +101,6 @@ void sButton::check(void)
         DBGLN("HoldClick");
     }
 }
-
 
 
 

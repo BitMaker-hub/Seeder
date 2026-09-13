@@ -42,12 +42,13 @@ la última palabra con su checksum.
 
 ## Requisitos
 
-Cualquiera de las dos placas:
+Cualquiera de estas placas:
 
 | Placa | Pantalla | Binario |
 |---|---|---|
 | LilyGO TTGO T-Display (ESP32) | 240x135 | `seeder-tdisplay-merged.bin` |
 | LilyGO T-Display-S3 (ESP32-S3) | 320x170 | `seeder-tdisplay-s3-merged.bin` |
+| Heltec Vision Master T190 (ESP32-S3R8) | 320x170 | `seeder-heltec-vision-master-t190-merged.bin` |
 
 Y un cable USB-C.
 
@@ -98,7 +99,9 @@ firmware manipulado no puede mentir sobre lo que hay en la flash.
 ## Compilar desde fuente
 
 ```bash
-pio run -e seeder
+pio run -e tdisplay
+# o, para la Heltec Vision Master T190:
+pio run -e heltec-vision-master-t190
 ```
 
 Las librerías (`uBitcoin`, `TFT_eSPI`) van fijadas dentro de `lib/` a propósito:

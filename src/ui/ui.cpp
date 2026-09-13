@@ -6,7 +6,7 @@
 #include "../Lib/Free_Fonts.h"
 #include "../qrcoded.h"
 #include "brand.h"
-#if !defined(SEEDER_BOARD_TDISPLAY_S3)
+#if !defined(SEEDER_BOARD_LARGE)
   #include "../Lib/images_splash85.h"
 #endif
 
@@ -15,7 +15,7 @@ extern TFT_eSPI tft;
 /* Los bitmaps del splash no escalan con la placa, asi que cada una usa el suyo:
    a tamano nativo el grupo se comia los 135 px de la pequena y dejaba los
    creditos pegados al borde. En la S3 caben de sobra sin tocar. */
-#if defined(SEEDER_BOARD_TDISPLAY_S3)
+#if defined(SEEDER_BOARD_LARGE)
   #define SPLASH_LOGO    uBitcoinLogo
   #define SPLASH_LOGO_W  logouBTCWidth
   #define SPLASH_LOGO_H  logouBTCHeight
