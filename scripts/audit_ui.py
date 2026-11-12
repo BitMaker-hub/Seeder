@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Auditoría de la interfaz, para las dos placas.
+Auditoría de la interfaz, para las tres placas.
 
 La composición se diseñó sobre 240x135 y cada coordenada pasa por SX()/SY(),
 así que la placa grande reproduce el mismo diseño escalado. Lo que NO escala
 son las fuentes: miden lo que miden en píxeles. Este script comprueba que,
 con esa mezcla, ningún texto ni ningún bloque se sale de la pantalla en
-ninguna de las dos.
+ninguna de las tres.
 
     py scripts/audit_ui.py
 
@@ -49,6 +49,7 @@ IMG = img_dims()
 BOARDS = {
     "T-Display    (ESP32)":    dict(w=240, h=135),
     "T-Display-S3 (ESP32-S3)": dict(w=320, h=170),
+    "M5StickS3    (ESP32-S3)": dict(w=240, h=135),
 }
 
 # Avance horizontal por carácter de cada fuente GFX, medido de sus cabeceras
@@ -296,7 +297,7 @@ def main():
     if bad:
         print(f"AUDITORÍA FALLIDA: {bad} problemas")
         return 1
-    print("Auditoría correcta: la misma composición cabe en las dos placas.")
+    print("Auditoría correcta: la misma composición cabe en las tres placas.")
     return 0
 
 

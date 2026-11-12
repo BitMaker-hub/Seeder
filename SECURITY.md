@@ -32,6 +32,12 @@ Y como la entropía es tuya, **puedes rehacer las cuentas por fuera**: la pantal
 
 - **La semilla nunca se escribe en flash.** Sólo vive en RAM y desaparece al
   desconectar. No hay EEPROM, no hay NVS, no hay persistencia de ningún tipo.
+  Excepción de hardware en la StickS3: Arduino inicializa NVS y M5GFX puede
+  guardar el identificador de placa `M5GFX / AUTODETECT = 26`; no contiene datos
+  de la semilla. Su tabla de particiones omite el destino de volcados de RAM
+  porque el SDK precompilado habilita los volcados de errores a flash. Ver
+  [README-STICKS3.md](README-STICKS3.md) para verificar la imagen antes del
+  primer arranque, o sus segmentos de código después.
 - **La semilla nunca sale por el puerto serie.** El firmware no imprime *nada*
   por UART. `SEEDER_DEBUG` sólo habilita trazas de botones y jamás toca la
   semilla ni la entropía.
