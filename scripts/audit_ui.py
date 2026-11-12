@@ -169,6 +169,27 @@ def audit(board, sym):
         ("entropía, 8 bytes por fila, 4 filas",
          sx(8), sx(8) + 7 * sx(29) + 24, sy(32), sy(32) + 3 * sy(26) + 16),
     ]
+    # FIRST ADDRESS: its QR must remain below the header, with a full
+    # four-module quiet zone and no overlap with any of the 42 address chars.
+    address_top = sy(22)
+    address_height = sym["UI_H"] - address_top
+    address_px = (address_height - sy(2)) // (25 + 8)  # version 2-L
+    address_side = (25 + 8) * address_px
+    address_left = sym["UI_W"] - sx(2) - address_side
+    address_y = address_top + (address_height - address_side) // 2
+    address_cpl = (address_left - sym["UI_M"] - sx(8)) // (6 * sym["UI_BIG_BODY"])
+    address_rows = (42 + address_cpl - 1) // address_cpl
+    address_line_height = max(8 * sym["UI_BIG_BODY"], sy(18))
+    address_text_right = sym["UI_M"] + address_cpl * 6 * sym["UI_BIG_BODY"]
+    address_text_bottom = sy(44) + (address_rows - 1) * address_line_height + 8 * sym["UI_BIG_BODY"]
+    blocks += [
+        ("direccion: QR + zona tranquila de 4 modulos",
+         address_left, address_left + address_side, address_y, address_y + address_side),
+        (f"direccion completa: 42 caracteres en {address_rows} filas",
+         sym["UI_M"], address_text_right, sy(44), address_text_bottom),
+    ]
+    if address_px < 3 or address_text_right + sx(8) > address_left or address_y < sy(22):
+        problems.append("direccion: QR demasiado pequeno o solapado con el texto/cabecera")
     # El QR elige versión según la longitud, y luego el mayor píxel por módulo
     # que deje 2 módulos de margen, ensanchando el margen hasta 4 con lo que
     # sobre. Se comprueban los PEORES casos: 12 palabras de 8 letras son 107
