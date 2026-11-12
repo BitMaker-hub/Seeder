@@ -427,10 +427,40 @@ void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint
 void seedAddress(const String &addr, uint8_t step, uint8_t total){
   head("FIRST ADDRESS", step, total);
   bodyLine("m/84'/0'/0'/0/0", SY(30), UI_ACCENT);
-  int y = SY(48);
-  for(int i=0; i<(int)addr.length(); i += UI_BIG_CPL){
-    bigLine(addr.substring(i, min((int)addr.length(), i + UI_BIG_CPL)), y, UI_TEXT);
-    y += UI_BIG_LH;
+
+  // BIP173 recommends uppercase inside QR codes: the same 42-character
+  // Bech32 address then fits version 2-L using alphanumeric encoding.
+  // Keep the address shown to the reader in its original lowercase form.
+  String qrAddress = addr;
+  qrAddress.toUpperCase();
+  QRCode qr;
+  uint8_t buf[qrcode_getBufferSize(2)];
+  int textWidth = UI_W - 2*UI_M;
+  if(qrAddress.length() == 42 && strncmp(qrAddress.c_str(), "BC1Q", 4) == 0 &&
+     qrcode_initText(&qr, buf, 2, ECC_LOW, qrAddress.c_str()) >= 0){
+    const int quiet = 4;
+    const int bodyTop = SY(22), bodyHeight = UI_H - bodyTop;
+    const int px = (bodyHeight - SY(2)) / (qr.size + 2*quiet);
+    const int side = (qr.size + 2*quiet) * px;
+    const int left = UI_W - SX(2) - side;
+    const int top = bodyTop + (bodyHeight - side) / 2;
+    tft.fillRect(left, top, side, side, UI_QR_LIGHT);
+    for(uint8_t row=0; row<qr.size; row++)
+      for(uint8_t col=0; col<qr.size; col++)
+        if(qrcode_getModule(&qr, col, row))
+          tft.fillRect(left + (col+quiet)*px, top + (row+quiet)*px,
+                       px, px, UI_QR_DARK);
+    textWidth = left - UI_M - SX(8);
+  }
+
+  // Retain the original font, size and colour. Rewrap every character in
+  // the space beside the QR; the smaller display needs five readable rows.
+  const int charsPerLine = max(1, textWidth / (UI_TINY_W * UI_BIG_BODY));
+  const int lineHeight = max(UI_TINY_H * UI_BIG_BODY, SY(18));
+  int y = SY(44);
+  for(int i=0; i<(int)addr.length(); i += charsPerLine){
+    bigLine(addr.substring(i, min((int)addr.length(), i + charsPerLine)), y, UI_TEXT);
+    y += lineHeight;
   }
 }
 
