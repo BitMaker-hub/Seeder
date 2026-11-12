@@ -17,7 +17,7 @@ jobs:
           python-version: '3.12'
       # La interfaz se diseñó sobre 240x135 y se escala con SX()/SY(), pero las
       # fuentes no escalan. Esto verifica que nada se sale en ninguna placa.
-      - name: Auditar la interfaz en las dos pantallas
+      - name: Auditar la interfaz en las tres placas
         run: python scripts/audit_ui.py
 
   firmware:
@@ -37,6 +37,10 @@ jobs:
             chip: esp32s3
             boot_offset: "0x0"
             flash_size: "16MB"
+          - env: sticks3
+            chip: esp32s3
+            boot_offset: "0x0"
+            flash_size: "8MB"
     steps:
       - uses: actions/checkout@v4
 
