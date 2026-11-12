@@ -19,6 +19,10 @@ jobs:
       # fuentes no escalan. Esto verifica que nada se sale en ninguna placa.
       - name: Auditar la interfaz en las dos pantallas
         run: python scripts/audit_ui.py
+      - name: Verify receiving-address QR payloads with an independent decoder
+        run: |
+          python -m pip install -r tests/address_qr/requirements.txt
+          python tests/address_qr/verify.py
 
   firmware:
     needs: audit
