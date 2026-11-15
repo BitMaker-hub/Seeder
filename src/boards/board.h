@@ -10,7 +10,9 @@
  así que se escalan por separado y no con un único factor.
 **********************************/
 
-#if defined(SEEDER_BOARD_TDISPLAY_S3)
+#if defined(SEEDER_BOARD_STICKS3)
+  #include "sticks3.h"
+#elif defined(SEEDER_BOARD_TDISPLAY_S3)
   #include "tdisplay_s3.h"
 #else
   #include "tdisplay.h"

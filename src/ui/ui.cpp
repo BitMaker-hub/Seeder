@@ -1,16 +1,20 @@
 #include <Arduino.h>
-#include <TFT_eSPI.h>
+#include "../display.h"
 #include "theme.h"
 #include "ui.h"
 #include "../Lib/images.h"
-#include "../Lib/Free_Fonts.h"
+#if defined(SEEDER_BOARD_STICKS3)
+  #define FMB24 (&lgfx::fonts::FreeMonoBold24pt7b)
+  #define FMB18 (&lgfx::fonts::FreeMonoBold18pt7b)
+  #define FM9   (&lgfx::fonts::FreeMono9pt7b)
+#else
+  #include "../Lib/Free_Fonts.h"
+#endif
 #include "../qrcoded.h"
 #include "brand.h"
 #if !defined(SEEDER_BOARD_TDISPLAY_S3)
   #include "../Lib/images_splash85.h"
 #endif
-
-extern TFT_eSPI tft;
 
 /* Los bitmaps del splash no escalan con la placa, asi que cada una usa el suyo:
    a tamano nativo el grupo se comia los 135 px de la pequena y dejaba los
@@ -46,7 +50,12 @@ void tiny(const char *s, int x, int y, uint16_t col, char datum, int sp, uint8_t
   int px = x;
   if(datum == 'C')      px = x - w/2;
   else if(datum == 'R') px = x - w;
+#if defined(SEEDER_BOARD_STICKS3)
+  // setTextFont(1) preserves a current GFX font in M5GFX; select Font0.
+  tft.setFont(&lgfx::fonts::Font0);
+#else
   tft.setTextFont(1);
+#endif
   tft.setTextSize(size);
   tft.setTextColor(col, UI_BG);
   for(int i=0; i<n; i++){ tft.drawChar(s[i], px, y, 1); px += adv; }
@@ -127,17 +136,30 @@ void bar(int x, int y, int w, int h, float frac){
    sobra: la posición en el raíl ya señala el botón físico. */
 static void rail(const char *topAct, const char *botAct, bool showKeys){
   tft.drawFastVLine(UI_RAIL_X, 0, UI_H, UI_TRACK);
+#if !defined(SEEDER_BOARD_STICKS3)
   caret(UI_RAIL_CX, SY(12), SX(9), SY(6), UI_DIM);
+#endif
   if(showKeys){
+#if defined(SEEDER_BOARD_STICKS3)
+    tiny("B MOVE", UI_RAIL_CX, UI_RAIL_TOP_Y, UI_ACCENT, 'C', 0);
+    tiny("A OK", UI_RAIL_CX, UI_RAIL_BOT_Y, UI_ACCENT, 'C', 0);
+#else
     tiny("MOVE", UI_RAIL_CX, UI_RAIL_TOP_Y,    UI_ACCENT, 'C', 1);
-    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+SY(10), UI_DIM,    'C', 0);
     tiny("OK",   UI_RAIL_CX, UI_RAIL_BOT_Y,    UI_ACCENT, 'C', 1);
+#endif
+    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+SY(10), UI_DIM,    'C', 0);
     tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+SY(10), UI_DIM,    'C', 0);
   }else{
+#if defined(SEEDER_BOARD_STICKS3)
+    tiny("B", UI_RAIL_CX, UI_RAIL_TOP_Y-SY(8), UI_DIM, 'C', 0);
+    tiny("A", UI_RAIL_CX, UI_RAIL_BOT_Y-SY(8), UI_DIM, 'C', 0);
+#endif
     tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+SY(4), UI_ACCENT, 'C', 1);
     tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+SY(4), UI_ACCENT, 'C', 1);
   }
+#if !defined(SEEDER_BOARD_STICKS3)
   caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);
+#endif
 }
 
 static void eyebrow(const char *s){ tiny(s, UI_M, SY(10), UI_ACCENT, 'L', 1); }
@@ -148,8 +170,14 @@ static int bigNumber(int n, int baselineY){
   tft.fillRect(0, baselineY-36, SX(100), 40, UI_BG);   //alto por la fuente, ancho por la placa
   tft.setFreeFont(FMB24);
   tft.setTextColor(UI_TEXT);
+#if defined(SEEDER_BOARD_STICKS3)
+  tft.setTextDatum(lgfx::textdatum_t::baseline_left);
+#endif
   tft.setCursor(UI_M, baselineY);
   tft.print(buf);
+#if defined(SEEDER_BOARD_STICKS3)
+  tft.setTextDatum(TL_DATUM);
+#endif
   return tft.getCursorX();
 }
 
@@ -176,7 +204,13 @@ static void head(const char *title, uint8_t step, uint8_t total){
   #define BODY_CPL  UI_MONO_CPL
   static void bodyLine(const String &s, int y, uint16_t col){
     tft.setFreeFont(FM9); tft.setTextColor(col, UI_BG);
+#if defined(SEEDER_BOARD_STICKS3)
+    tft.setTextDatum(lgfx::textdatum_t::baseline_left);
+#endif
     tft.setCursor(UI_M, y); tft.print(s);
+#if defined(SEEDER_BOARD_STICKS3)
+    tft.setTextDatum(TL_DATUM);
+#endif
   }
 #endif
 
@@ -238,6 +272,10 @@ static void greenHead(void){
    desplazarse, abajo un check para confirmar. */
 static void thinRail(void){
   tft.drawFastVLine(UI_MRAIL_X, UI_HEAD_H, UI_H-UI_HEAD_H, UI_TRACK);
+#if defined(SEEDER_BOARD_STICKS3)
+  tiny("B", UI_MRAIL_CX, SY(46), UI_ACCENT, 'C', 0);
+  tiny("A", UI_MRAIL_CX, SY(90), UI_ACCENT, 'C', 0);
+#endif
   caret(UI_MRAIL_CX, SY(62), SX(13), SY(-8), UI_DIM);
   caret(UI_MRAIL_CX, SY(68), SX(13), SY( 8), UI_DIM);
   for(int i=0; i<2; i++){                       //grosor 2, no hay drawWideLine
@@ -283,8 +321,14 @@ void words(uint8_t nWords){
      pantalla anterior, para que las dos casen. */
   tft.setFreeFont(FMB18);
   tft.setTextDatum(BC_DATUM);
+#if defined(SEEDER_BOARD_STICKS3)
+  // A numeric font argument would replace the selected FreeMono font.
+  tft.setTextColor(c1); tft.drawString("12", SX(36), SY(74));
+  tft.setTextColor(c2); tft.drawString("24", SX(36), SY(118));
+#else
   tft.setTextColor(c1); tft.drawString("12", SX(36), SY(74),  GFXFF);
   tft.setTextColor(c2); tft.drawString("24", SX(36), SY(118), GFXFF);
+#endif
   tft.setTextDatum(TL_DATUM);
 
   listRow(SY(44), w12,  c1, "WORDS", "128 BITS OF ENTROPY", SX(72));
@@ -377,9 +421,15 @@ void holdEnter(void){
   tiny("RELEASE TO CANCEL", UI_RAIL_X/2, SY(92), UI_DIM,  'C', 1);
 
   tft.fillRect(UI_RAIL_X+1, 0, UI_W - UI_RAIL_X - 1, UI_H, UI_BG);
+#if defined(SEEDER_BOARD_STICKS3)
+  tiny("A OK", UI_RAIL_CX, SY(96), UI_ACCENT, 'C', 0);
+#else
   tiny("OK",   UI_RAIL_CX, SY(96),  UI_ACCENT, 'C', 1);
+#endif
   tiny("HOLD", UI_RAIL_CX, SY(106), UI_TEXT,   'C', 0);
+#if !defined(SEEDER_BOARD_STICKS3)
   caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);   //senala el boton fisico
+#endif
   holdFilled = 0;
 }
 
@@ -556,9 +606,15 @@ void seedExit(void){
   const int bx = SX(126), by = SY(100), bw = SX(106), bh = SY(30);
   tft.drawRoundRect(bx,   by,   bw,   bh,   6, UI_ACCENT);
   tft.drawRoundRect(bx+1, by+1, bw-2, bh-2, 5, UI_ACCENT);
+#if defined(SEEDER_BOARD_STICKS3)
+  tiny("HOLD A", bx + bw/2, by + (bh-8*UI_BIG_BODY)/2, UI_ACCENT, 'C', 1, UI_BIG_BODY);
+#else
   tiny("HOLD OK", bx + bw/2, by + (bh-8*UI_BIG_BODY)/2, UI_ACCENT, 'C', 1, UI_BIG_BODY);
+#endif
   /* la punta señala al botón OK físico, en el borde derecho */
+#if !defined(SEEDER_BOARD_STICKS3)
   tft.fillTriangle(UI_W-SX(6), by+SY(9), UI_W-SX(6), by+SY(21), UI_W-SX(1), by+SY(15), UI_ACCENT);
+#endif
 }
 
 }  // namespace ui

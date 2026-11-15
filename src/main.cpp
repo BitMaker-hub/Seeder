@@ -21,6 +21,7 @@ void setup() {
 void loop() {
   
   while(true){
+    Update_Board();
     /***** Check button state ******/
     btnMove.check();
     btnSelect.check();

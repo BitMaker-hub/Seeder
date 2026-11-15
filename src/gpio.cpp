@@ -2,10 +2,14 @@
 #include "gpio.h"
 #include "workflow.h"
 #include "ui/ui.h"
-#include <TFT_eSPI.h> // Graphics and font library for ST7789 driver chip
+#include "display.h"
 
 /**********************🍃 GLOBAL Vars *******************************/
-TFT_eSPI tft = TFT_eSPI();  // Invoke library, pins defined in User_Setup.h
+#if defined(SEEDER_BOARD_STICKS3)
+SeederDisplay &tft = M5.Display;
+#else
+SeederDisplay tft;  // LilyGO pins remain defined in TFT_eSPI/User_Setup.h.
+#endif
 extern sWallet myWallet;
 extern sButton btnMove;
 extern sButton btnSelect;
@@ -14,6 +18,30 @@ extern sButton btnSelect;
 
 void Init_TFT(void){
 
+#if defined(SEEDER_BOARD_STICKS3)
+  // Never initialize serial, radios, audio, sensors, or external accessories.
+  // Silence library diagnostics before initialization; seeds never enter logs.
+  esp_log_level_set("*", ESP_LOG_NONE);
+  M5.Log.setLogLevel(m5::log_target_serial, ESP_LOG_NONE);
+  M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_NONE);
+  M5.Log.setLogLevel(m5::log_target_callback, ESP_LOG_NONE);
+  auto cfg = M5.config();
+  cfg.serial_baudrate = 0;
+  cfg.clear_display = true;
+  cfg.output_power = false;
+  cfg.internal_imu = false;
+  cfg.internal_rtc = false;
+  cfg.internal_mic = false;
+  cfg.internal_spk = false;
+  cfg.external_imu = false;
+  cfg.external_rtc = false;
+  cfg.external_speaker_value = 0;
+  cfg.external_display_value = 0;
+  cfg.fallback_board = m5::board_t::board_M5StickS3;
+  M5.begin(cfg);
+  M5.Power.setExtOutput(false);
+  tft.setBrightness(128);
+#else
 #ifdef PIN_POWER_ON
   /* La T-Display-S3 alimenta sus periféricos desde este pin. Si no se pone
      alto ANTES de arrancar el panel, la pantalla no enciende y la placa
@@ -24,6 +52,7 @@ void Init_TFT(void){
 #endif
 
   tft.init();
+#endif
   tft.setRotation(1);
   tft.setSwapBytes(true);   // orden de bytes al volcar imágenes
 
@@ -31,6 +60,12 @@ void Init_TFT(void){
 
   myWallet.entropySrc = coinEntropy;
   drawInitMenu();
+}
+
+void Update_Board(void){
+#if defined(SEEDER_BOARD_STICKS3)
+  M5.update();
+#endif
 }
 
 /*****************🍃 BUTTON DETECTION *********************/

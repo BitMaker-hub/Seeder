@@ -1,5 +1,8 @@
 #include <Arduino.h>
 
+// Poll board services before reading the shared debounced buttons.
+void Update_Board(void);
+
 /**************🍃 TFT functions ********************/
 void Init_TFT(void);
 

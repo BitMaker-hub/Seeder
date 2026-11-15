@@ -42,14 +42,16 @@ la última palabra con su checksum.
 
 ## Requisitos
 
-Cualquiera de las dos placas:
+Cualquiera de estas placas:
 
 | Placa | Pantalla | Binario |
 |---|---|---|
 | LilyGO TTGO T-Display (ESP32) | 240x135 | `seeder-tdisplay-merged.bin` |
 | LilyGO T-Display-S3 (ESP32-S3) | 320x170 | `seeder-tdisplay-s3-merged.bin` |
+| M5Stack StickS3 K150 (ESP32-S3) | 240x135 | `seeder-sticks3-merged.bin` |
 
-Y un cable USB-C.
+Y un cable USB-C. Para la StickS3, consulta los controles, alimentación y
+verificación específicos en [README-STICKS3.md](README-STICKS3.md).
 
 Opcionalmente admite una LiPo por el conector JST. La placa no trae interruptor,
 pero **sí se puede apagar por firmware**: cómo hacerlo, y qué esperar del consumo
@@ -99,6 +101,8 @@ firmware manipulado no puede mentir sobre lo que hay en la flash.
 
 ```bash
 pio run -e seeder
+# Para M5Stack StickS3:
+pio run -e sticks3
 ```
 
 Las librerías (`uBitcoin`, `TFT_eSPI`) van fijadas dentro de `lib/` a propósito:
@@ -107,6 +111,7 @@ un generador de semillas debe compilar igual hoy que dentro de cinco años.
 ## Controles
 
 Dos botones y nada más. **MOVE** es el de arriba y **OK** el de abajo.
+En la StickS3, **MOVE** es el botón lateral **B** y **OK** el frontal **A**.
 
 | Dónde estás | MOVE | OK |
 |---|---|---|
